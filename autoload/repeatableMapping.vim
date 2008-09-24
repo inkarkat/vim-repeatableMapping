@@ -31,7 +31,9 @@
 " Maintainer:	Ingo Karkat <ingo@karkat.de>
 "
 " REVISION	DATE		REMARKS 
-"	001	00-Jan-2008	file creation
+"	002	25-Sep-2008	BF: '|' must be escaped, or the map command will
+"				end prematurely.  
+"	001	24-Sep-2008	file creation
 
 let s:save_cpo = &cpo
 set cpo&vim
@@ -41,6 +43,7 @@ function! repeatableMapping#makeRepeatable( mapcmd, lhs, mapname, ... )
     let l:mapmode = (a:mapcmd =~# '^\w\%(nore\)\?map' ? strpart(a:mapcmd, 0, 1) : '')
 
     let l:rhs = maparg(a:lhs, l:mapmode)
+    let l:rhs = substitute(l:rhs, '|', '<Bar>', 'g')	" '|' must be escaped, or the map command will end prematurely.  
     if l:rhs =~? ':.*<CR>$'
 	let l:rhs = substitute(l:rhs, '\c<CR>$', '', '')
 	let l:cmdJoiner = '<Bar>'
