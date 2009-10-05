@@ -38,6 +38,38 @@
 let s:save_cpo = &cpo
 set cpo&vim
 
+" repeat.vim only supports normal mode repetition, as this is the only
+" repetition that is built into VIM. However, one can define repetition in
+" visual mode:
+"   vnoremap . :normal .<CR>
+" (Or better a more fancy version that only applies the repeat command over
+" entire lines in linewise visual mode, keeps the current cursor position in
+" characterwise visual mode, and does nothing (sensible) in blockwise visual
+" mode.) 
+" The <Plug>ReenterVisualMode mapping allows to apply repeat.vim repetition to
+" visual mode commands; just prepend it in the call to repeat#set():
+"   vnoremap <Plug>MyMapping ...:silent! call repeat#set("\<Plug>ReenterVisualMode\<Plug>MyMapping")<CR>
+" If repetition is then invoked from an active visual selection, that selection
+" is the affected area for the repetition. If repetition is invoked in normal
+" mode, the repetition works on a selection starting at the cursor position,
+" with the same size as the last visual selection. 
+function! s:ReenterVisualMode()
+    if visualmode() ==# 'V'
+	" In linewise visual mode, the repeat command is invoked for each
+	" individual line. Thus, we only need to select the current line. 
+	return 'V'
+    elseif getpos('.') == getpos("'<") || getpos('.') == getpos("'>")
+	return 'gv'
+    else
+	" For ':set selection=exclusive', the final character must be
+	" re-included with <Space>, but only if this is not linewise visual
+	" mode; in that case, the <Space> would add the next line in case the
+	" last selected line is empty.  
+	return '1v' . (visualmode() !=# 'V' && &selection ==# 'exclusive' ? ' ' : '')
+    endif
+endfunction
+nnoremap <silent> <expr> <Plug>ReenterVisualMode <SID>ReenterVisualMode()
+
 function! repeatableMapping#makeRepeatable( mapcmd, lhs, mapname, ... )
     let l:plugname = '<Plug>' . a:mapname
     let l:mapmode = (a:mapcmd =~# '^\w\%(nore\)\?map' ? strpart(a:mapcmd, 0, 1) : '')
@@ -52,7 +84,11 @@ function! repeatableMapping#makeRepeatable( mapcmd, lhs, mapname, ... )
     endif
 
     let l:plugMapping = a:mapcmd . ' ' . l:plugname . ' ' . l:rhs . 
-    \	l:cmdJoiner . 'silent! call repeat#set("\' . l:plugname . '"' . (a:0 ? ', ' . a:1 : '') . ')<CR>'
+    \	l:cmdJoiner . 'silent! call repeat#set("' . 
+    \	(l:mapmode ==# 'v' ? '\<Plug>ReenterVisualMode' : '') . 
+    \	'\' . l:plugname .
+    \	'"' . (a:0 ? ', ' . a:1 : '') .
+    \	')<CR>'
 "****D echomsg l:plugMapping
     execute l:plugMapping
 
