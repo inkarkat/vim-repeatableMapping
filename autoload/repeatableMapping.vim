@@ -39,9 +39,9 @@ let s:save_cpo = &cpo
 set cpo&vim
 
 " repeat.vim only supports normal mode repetition, as this is the only
-" repetition that is built into VIM. However, one can define repetition in
+" repetition that is built into Vim. However, one can define repetition in
 " visual mode:
-"   vnoremap . :normal .<CR>
+"   xnoremap . :normal .<CR>
 " (Or better a more fancy version that only applies the repeat command over
 " entire lines in linewise visual mode, keeps the current cursor position in
 " characterwise visual mode, and does nothing (sensible) in blockwise visual
