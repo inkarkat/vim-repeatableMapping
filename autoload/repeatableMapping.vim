@@ -24,7 +24,7 @@
 "
 "   The <Plug>ReenterVisualMode mapping allows to apply repeat.vim repetition to
 "   visual mode commands; just prepend it in the call to repeat#set():
-"	vnoremap <Plug>MyMapping ...:silent! call repeat#set("\<Plug>ReenterVisualMode\<Plug>MyMapping")<CR>
+"	vnoremap <silent> <Plug>MyMapping ...:silent! call repeat#set("\<Plug>ReenterVisualMode\<Plug>MyMapping")<CR>
 "
 "   If a visual mode mapping is repeated from an active visual selection, that
 "   selection is the affected area for the repetition. If repetition is invoked
@@ -40,16 +40,17 @@
 "	nnoremap <silent> <Leader>v :version<CR>
 "   Then make the mapping repeatable; this will redefine the original mapping
 "   and insert the call to repeat#set() at the end. 
-"	silent! call repeatableMapping#makeRepeatable('nnoremap <silent>', '<Leader>v', 'Test2')
+"	silent! call repeatableMapping#makeRepeatable('nnoremap', '<Leader>v', 'Test2')
 "   The processing requires the following information:
 "   - The original mapping command (for the map-mode, whether "noremap" or not,
-"     any optional map-arguments like "<buffer>"). 
+"     any optional map-arguments like "<buffer>"; "<silent>" is added
+"     automatically to avoid showing the repeat invocation). 
 "   - The mapping's lhs (i.e. keys that invoke the mapping). 
 "   - A unique name for the intermediate <Plug> mapping that needs to be created
 "     so that repeat.vim can invoke it. 
 "
 "   If you already have a <Plug> mapping: 
-"	vnoremap <Plug>ShowVersion :<C-U>version<CR>
+"	vnoremap <silent> <Plug>ShowVersion :<C-U>version<CR>
 "	vmap <Leader>v <Plug>ShowVersion
 "   You can redefine the <Plug> mapping directly, and just have the call to
 "   repeat#set() appended: 
@@ -75,6 +76,8 @@
 " Maintainer:	Ingo Karkat <ingo@karkat.de>
 "
 " REVISION	DATE		REMARKS 
+"	004	30-Sep-2011	Automatically map <Plug>-mapping with <silent>
+"				to avoid showing the repeat invocation. 
 "	003	17-Mar-2011	Factor out s:MakePlugMappingWithRepeat(). 
 "				Add
 "				repeatableMapping#makePlugMappingRepeatable()
@@ -83,7 +86,6 @@
 "	002	25-Sep-2008	BF: '|' must be escaped, or the map command will
 "				end prematurely.  
 "	001	24-Sep-2008	file creation
-
 let s:save_cpo = &cpo
 set cpo&vim
 
@@ -116,7 +118,7 @@ function! s:MakePlugMappingWithRepeat( mapcmd, lhs, plugname, ... )
 	let l:cmdJoiner = ':'
     endif
 
-    let l:plugMapping = a:mapcmd . ' ' . a:plugname . ' ' . l:rhs . 
+    let l:plugMapping = a:mapcmd . ' <silent> ' . a:plugname . ' ' . l:rhs . 
     \	l:cmdJoiner . 'silent! call repeat#set("' . 
     \	(l:mapmode ==# 'v' ? '\<Plug>ReenterVisualMode' : '') . 
     \	'\' . a:plugname .
@@ -141,5 +143,4 @@ endfunction
 
 let &cpo = s:save_cpo
 unlet s:save_cpo
-
 " vim: set sts=4 sw=4 noexpandtab ff=unix fdm=syntax :
