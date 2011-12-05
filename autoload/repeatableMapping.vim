@@ -70,12 +70,14 @@
 " KNOWN PROBLEMS:
 " TODO:
 "
-" Copyright: (C) 2008-2011 by Ingo Karkat
+" Copyright: (C) 2008-2011 Ingo Karkat
 "   The VIM LICENSE applies to this script; see ':help copyright'. 
 "
 " Maintainer:	Ingo Karkat <ingo@karkat.de>
 "
 " REVISION	DATE		REMARKS 
+"	005	06-Dec-2011	<Plug>ReenterVisualMode: If [count] is given,
+"				the size is multiplied accordingly. 
 "	004	30-Sep-2011	Automatically map <Plug>-mapping with <silent>
 "				to avoid showing the repeat invocation. 
 "	003	17-Mar-2011	Factor out s:MakePlugMappingWithRepeat(). 
@@ -97,11 +99,18 @@ function! s:ReenterVisualMode()
     elseif getpos('.') == getpos("'<") || getpos('.') == getpos("'>")
 	return 'gv'
     else
+	" A normal-mode repeat of the visual mapping is triggered by repeat.vim.
+	" It establishes a new selection at the cursor position, of the same
+	" mode and size as the last selection.
+	"   If [count] is given, the size is multiplied accordingly. This has
+	"   the side effect that a repeat with [count] will persist the expanded
+	"   size, which is different from what the normal-mode repeat does (it
+	"   keeps the scope of the original command). 
+	return v:count1 . 'v' . (visualmode() !=# 'V' && &selection ==# 'exclusive' ? ' ' : '')
 	" For ':set selection=exclusive', the final character must be
 	" re-included with <Space>, but only if this is not linewise visual
 	" mode; in that case, the <Space> would add the next line in case the
 	" last selected line is empty.  
-	return '1v' . (visualmode() !=# 'V' && &selection ==# 'exclusive' ? ' ' : '')
     endif
 endfunction
 nnoremap <silent> <expr> <Plug>ReenterVisualMode <SID>ReenterVisualMode()
