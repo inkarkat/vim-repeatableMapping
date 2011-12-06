@@ -28,12 +28,22 @@
 "
 "   If a visual mode mapping is repeated from an active visual selection, that
 "   selection is the affected area for the repetition. If repetition is invoked
-"   in normal mode, the repetition works on a selection starting at the cursor
-"   position, with the same size as the last visual selection. 
+"   in normal mode, the repetition works on a new selection starting at the
+"   cursor position, with the same size as the last visual selection (times
+"   [count]). 
 "   If a non-visual mode mapping is repeated from an active visual selection, it
 "   won't (can't) apply to the visual selection, but to whatever that mapping
 "   typically applies. So, you can only repeat previous visual mode mappings on
-"   a visual selection! 
+"   a visual selection! The only way around this is to cross-link both mapping
+"   types, and to use an even more intelligent version of the repeat definition
+"   in visual mode. 
+"
+"   Through visualrepeat.vim, it is possible to make normal mode and visual mode
+"   mappings repeat each other, with the normal mode mapping through the visual
+"   mode mapping repeated over the visual selection, and the visual mode mapping
+"   repeated over a new selection starting at the cursor position, with the same
+"   size as the last visual selection (times [count]). 
+"   For this, use the repeatableMapping#makeCrossRepeatable() function. 
 
 " USAGE:
 "   First define your mapping in the usual way:
@@ -48,6 +58,10 @@
 "   - The mapping's lhs (i.e. keys that invoke the mapping). 
 "   - A unique name for the intermediate <Plug> mapping that needs to be created
 "     so that repeat.vim can invoke it. 
+"   - Optional: The default count that will be prefixed to the mapping if no
+"     explicit numeric argument was given; i.e. the second optional argument of
+"     repeat#set(). If your mapping doesn't accept a numeric argument and you
+"     never want to receive one, pass a value of -1.
 "
 "   If you already have a <Plug> mapping: 
 "	vnoremap <silent> <Plug>ShowVersion :<C-U>version<CR>
@@ -115,10 +129,8 @@ function! s:ReenterVisualMode()
 endfunction
 nnoremap <silent> <expr> <Plug>ReenterVisualMode <SID>ReenterVisualMode()
 
-function! s:MakePlugMappingWithRepeat( mapcmd, lhs, plugname, ... )
-    let l:mapmode = (a:mapcmd =~# '^\w\%(nore\)\?map' ? a:mapcmd[0] : '')
-
-    let l:rhs = maparg(a:lhs, l:mapmode)
+function! s:GetRhsAndCmdJoiner( lhs, mapmode )
+    let l:rhs = maparg(a:lhs, a:mapmode)
     let l:rhs = substitute(l:rhs, '|', '<Bar>', 'g')	" '|' must be escaped, or the map command will end prematurely.  
     if l:rhs =~? ':.*<CR>$'
 	let l:rhs = substitute(l:rhs, '\c<CR>$', '', '')
@@ -126,6 +138,14 @@ function! s:MakePlugMappingWithRepeat( mapcmd, lhs, plugname, ... )
     else
 	let l:cmdJoiner = ':'
     endif
+
+    return [l:rhs, l:cmdJoiner]
+endfunction
+
+function! s:MakePlugMappingWithRepeat( mapcmd, lhs, plugname, ... )
+    let l:mapmode = (a:mapcmd =~# '^\w\%(nore\)\?map' ? a:mapcmd[0] : '')
+
+    let [l:rhs, l:cmdJoiner] = s:GetRhsAndCmdJoiner(a:lhs, l:mapmode)
 
     let l:plugMapping = a:mapcmd . ' <silent> ' . a:plugname . ' ' . l:rhs . 
     \	l:cmdJoiner . 'silent! call repeat#set("' . 
@@ -148,6 +168,59 @@ endfunction
 
 function! repeatableMapping#makePlugMappingRepeatable( mapcmd, mapname, ... )
     call call('s:MakePlugMappingWithRepeat', [a:mapcmd, a:mapname, a:mapname] + a:000)
+endfunction
+
+function! s:RepeatSection( nrepeat, vrepeat )
+    return
+    \	'silent! call repeat#set("' .
+    \	'\' . a:nrepeat .
+    \	'"' . (a:0 ? ', ' . a:1 : '') .
+    \	')<Bar>silent! call visualrepeat#set("' .
+    \	'\' . a:vrepeat .
+    \	'"' . (a:0 ? ', ' . a:1 : '') .
+    \	')<CR>'
+
+endfunction
+function! repeatableMapping#makeCrossRepeatable( nmapcmd, nlhs, nmapname, vmapcmd, vlhs, vmapname, ... )
+    if a:nmapname ==# a:vmapname | throw 'ASSERT: nmapname and vmapname must be different' | endif
+
+    let l:nplugname = '<Plug>' . a:nmapname
+    let l:vplugname = '<Plug>' . a:vmapname
+
+    let [l:nrhs, l:ncmdJoiner] = s:GetRhsAndCmdJoiner(a:nlhs, 'n')
+    let [l:vrhs, l:vcmdJoiner] = s:GetRhsAndCmdJoiner(a:vlhs, 'v')
+
+    let l:nplugMapping = a:nmapcmd . ' <silent> ' . l:nplugname . ' ' .
+    \	l:nrhs .
+    \	l:ncmdJoiner .
+    \	s:RepeatSection(l:nplugname, l:vplugname)
+
+    let l:vplugMapping = a:vmapcmd . ' <silent> ' . l:vplugname . ' ' .
+    \	l:vrhs .
+    \	l:vcmdJoiner .
+    \	s:RepeatSection(l:vplugname, l:vplugname)
+
+    let l:rplugMapping = a:nmapcmd . ' <silent> ' . l:vplugname . ' ' .
+    \	":<C-u>execute 'normal!' v:count1 . 'v' . (visualmode() !=# 'V' && &selection ==# 'exclusive' ? ' ' : '')<CR>" .
+    \	l:vrhs .
+    \	l:vcmdJoiner .
+    \	s:RepeatSection(l:vplugname, l:vplugname)
+
+    execute l:nplugMapping
+    execute l:vplugMapping
+    execute l:rplugMapping
+
+    let l:nlhsMapping = substitute(a:nmapcmd, 'noremap', 'map', '')  . ' ' . a:nlhs . ' ' . l:nplugname
+    let l:vlhsMapping = substitute(a:vmapcmd, 'noremap', 'map', '')  . ' ' . a:vlhs . ' ' . l:vplugname
+    execute l:nlhsMapping
+    execute l:vlhsMapping
+
+    return
+echomsg '****' l:nplugMapping
+echomsg '****' l:vplugMapping
+echomsg '****' l:rplugMapping
+echomsg '****' l:nlhsMapping
+echomsg '****' l:vlhsMapping
 endfunction
 
 let &cpo = s:save_cpo
