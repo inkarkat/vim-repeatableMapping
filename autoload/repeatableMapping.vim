@@ -90,57 +90,57 @@ function! repeatableMapping#makePlugMappingRepeatable( mapcmd, mapname, ... )
     call call('s:MakePlugMappingWithRepeat', [a:mapcmd, a:mapname, a:mapname] + a:000)
 endfunction
 
-function! s:RepeatSection( nrepeat, vrepeat )
+function! s:RepeatSection( normalRepeatPlug, visualRepeatPlug )
     return
     \	'silent! call repeat#set("' .
-    \	'\' . a:nrepeat .
+    \	'\' . a:normalRepeatPlug .
     \	'"' . (a:0 ? ', ' . a:1 : '') .
     \	')<Bar>silent! call visualrepeat#set("' .
-    \	'\' . a:vrepeat .
+    \	'\' . a:visualRepeatPlug .
     \	'"' . (a:0 ? ', ' . a:1 : '') .
     \	')<CR>'
 
 endfunction
-function! repeatableMapping#makeCrossRepeatable( nmapcmd, nlhs, nmapname, vmapcmd, vlhs, vmapname, ... )
-    if a:nmapname ==# a:vmapname | throw 'ASSERT: nmapname and vmapname must be different' | endif
+function! repeatableMapping#makeCrossRepeatable( normalMapCmd, normalLhs, normalMapName, visualMapCmd, visualLhs, visualMapName, ... )
+    if a:normalMapName ==# a:visualMapName | throw 'ASSERT: normalMapName and visualMapName must be different' | endif
 
-    let l:nplugname = '<Plug>' . a:nmapname
-    let l:vplugname = '<Plug>' . a:vmapname
+    let l:normalPlugName = '<Plug>' . a:normalMapName
+    let l:visualPlugName = '<Plug>' . a:visualMapName
 
-    let [l:nrhs, l:ncmdJoiner] = s:GetRhsAndCmdJoiner(a:nlhs, 'n')
-    let [l:vrhs, l:vcmdJoiner] = s:GetRhsAndCmdJoiner(a:vlhs, 'v')
+    let [l:normalRhs, l:normalCmdJoiner] = s:GetRhsAndCmdJoiner(a:normalLhs, 'n')
+    let [l:visualRhs, l:visualCmdJoiner] = s:GetRhsAndCmdJoiner(a:visualLhs, 'v')
 
-    let l:nplugMapping = a:nmapcmd . ' <silent> ' . l:nplugname . ' ' .
-    \	l:nrhs .
-    \	l:ncmdJoiner .
-    \	s:RepeatSection(l:nplugname, l:vplugname)
+    let l:normalPlugMapping = a:normalMapCmd . ' <silent> ' . l:normalPlugName . ' ' .
+    \	l:normalRhs .
+    \	l:normalCmdJoiner .
+    \	s:RepeatSection(l:normalPlugName, l:visualPlugName)
 
-    let l:vplugMapping = a:vmapcmd . ' <silent> ' . l:vplugname . ' ' .
-    \	l:vrhs .
-    \	l:vcmdJoiner .
-    \	s:RepeatSection(l:vplugname, l:vplugname)
+    let l:visualPlugMapping = a:visualMapCmd . ' <silent> ' . l:visualPlugName . ' ' .
+    \	l:visualRhs .
+    \	l:visualCmdJoiner .
+    \	s:RepeatSection(l:visualPlugName, l:visualPlugName)
 
-    let l:rplugMapping = a:nmapcmd . ' <silent> ' . l:vplugname . ' ' .
+    let l:repeatPlugMapping = a:normalMapCmd . ' <silent> ' . l:visualPlugName . ' ' .
     \	":<C-u>execute 'normal!' v:count1 . 'v' . (visualmode() !=# 'V' && &selection ==# 'exclusive' ? ' ' : '')<CR>" .
-    \	l:vrhs .
-    \	l:vcmdJoiner .
-    \	s:RepeatSection(l:vplugname, l:vplugname)
+    \	l:visualRhs .
+    \	l:visualCmdJoiner .
+    \	s:RepeatSection(l:visualPlugName, l:visualPlugName)
 
-    execute l:nplugMapping
-    execute l:vplugMapping
-    execute l:rplugMapping
+    execute l:normalPlugMapping
+    execute l:visualPlugMapping
+    execute l:repeatPlugMapping
 
-    let l:nlhsMapping = substitute(a:nmapcmd, 'noremap', 'map', '')  . ' ' . a:nlhs . ' ' . l:nplugname
-    let l:vlhsMapping = substitute(a:vmapcmd, 'noremap', 'map', '')  . ' ' . a:vlhs . ' ' . l:vplugname
-    execute l:nlhsMapping
-    execute l:vlhsMapping
+    let l:normalLhsMapping = substitute(a:normalMapCmd, 'noremap', 'map', '')  . ' ' . a:normalLhs . ' ' . l:normalPlugName
+    let l:visualLhsMapping = substitute(a:visualMapCmd, 'noremap', 'map', '')  . ' ' . a:visualLhs . ' ' . l:visualPlugName
+    execute l:normalLhsMapping
+    execute l:visualLhsMapping
 
     return
-echomsg '****' l:nplugMapping
-echomsg '****' l:vplugMapping
-echomsg '****' l:rplugMapping
-echomsg '****' l:nlhsMapping
-echomsg '****' l:vlhsMapping
+echomsg '****' l:normalPlugMapping
+echomsg '****' l:visualPlugMapping
+echomsg '****' l:repeatPlugMapping
+echomsg '****' l:normalLhsMapping
+echomsg '****' l:visualLhsMapping
 endfunction
 
 let &cpo = s:save_cpo
