@@ -10,6 +10,11 @@
 " Maintainer:	Ingo Karkat <ingo@karkat.de>
 "
 " REVISION	DATE		REMARKS 
+"	006	08-Dec-2011	Rename variables; just a single-letter
+"				difference isn't enough. 
+"				Implement fallback for
+"				repeatableMapping#makeCrossRepeatable when
+"				visualrepeat.vim isn't available. 
 "	005	06-Dec-2011	<Plug>ReenterVisualMode: If [count] is given,
 "				the size is multiplied accordingly. 
 "	004	30-Sep-2011	Automatically map <Plug>-mapping with <silent>
@@ -103,6 +108,15 @@ function! s:RepeatSection( normalRepeatPlug, visualRepeatPlug )
 endfunction
 function! repeatableMapping#makeCrossRepeatable( normalMapCmd, normalLhs, normalMapName, visualMapCmd, visualLhs, visualMapName, ... )
     if a:normalMapName ==# a:visualMapName | throw 'ASSERT: normalMapName and visualMapName must be different' | endif
+
+    if ! exists('g:loaded_visualrepeat')
+	" The visualrepeat plugin isn't installed. Fall back to mapping them
+	" separately, with just the <Plug>ReenterVisualMode feature for the
+	" visual mode mapping. 
+	call repeatableMapping#makePlugMappingRepeatable(a:normalMapCmd, a:normalLhs, a:normalMapName)
+	call repeatableMapping#makePlugMappingRepeatable(a:visualMapCmd, a:visualLhs, a:visualMapName)
+	return
+    endif
 
     let l:normalPlugName = '<Plug>' . a:normalMapName
     let l:visualPlugName = '<Plug>' . a:visualMapName
