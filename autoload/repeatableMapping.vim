@@ -117,8 +117,8 @@ function! repeatableMapping#makeCrossRepeatable( normalMapCmd, normalLhs, normal
 	" The visualrepeat plugin isn't installed. Fall back to mapping them
 	" separately, with just the <Plug>ReenterVisualMode feature for the
 	" visual mode mapping. 
-	call repeatableMapping#makePlugMappingRepeatable(a:normalMapCmd, a:normalLhs, a:normalMapName)
-	call repeatableMapping#makePlugMappingRepeatable(a:visualMapCmd, a:visualLhs, a:visualMapName)
+	if ! empty(a:normalMapCmd) | call repeatableMapping#makePlugMappingRepeatable(a:normalMapCmd, a:normalLhs, a:normalMapName) | endif
+	if ! empty(a:visualMapCmd) | call repeatableMapping#makePlugMappingRepeatable(a:visualMapCmd, a:visualLhs, a:visualMapName) | endif
 	return
     endif
 
@@ -144,14 +144,18 @@ function! repeatableMapping#makeCrossRepeatable( normalMapCmd, normalLhs, normal
     \	l:visualCmdJoiner .
     \	s:RepeatSection(l:visualPlugName, l:visualPlugName)
 
-    execute l:normalPlugMapping
-    execute l:visualPlugMapping
-    execute l:repeatPlugMapping
+    if ! empty(a:normalMapCmd)
+	execute l:normalPlugMapping
+	execute l:repeatPlugMapping
+    endif
+    if ! empty(a:visualMapCmd)
+	execute l:visualPlugMapping
+    endif
 
     let l:normalLhsMapping = substitute(a:normalMapCmd, 'noremap', 'map', '')  . ' ' . a:normalLhs . ' ' . l:normalPlugName
     let l:visualLhsMapping = substitute(a:visualMapCmd, 'noremap', 'map', '')  . ' ' . a:visualLhs . ' ' . l:visualPlugName
-    execute l:normalLhsMapping
-    execute l:visualLhsMapping
+    if ! empty(a:normalMapCmd) | execute l:normalLhsMapping | endif
+    if ! empty(a:visualMapCmd) | execute l:visualLhsMapping | endif
 
     return
 echomsg '****' l:normalPlugMapping
@@ -162,13 +166,15 @@ echomsg '****' l:visualLhsMapping
 endfunction
 
 function! repeatableMapping#makeMultipleCrossRepeatable( normalDefs, visualMapCmd, visualLhs, visualMapName, ... )
-    " By simply iterating over the normal mode mappings, the visual mappings
-    " will be re-defined all the time, but this isn't problematic, just a little
-    " bit inefficient. However, this case is rather rare, so it should be fine. 
-    for [l:normalMapCmd, l:normalLhs, l:normalMapName] in a:normalDefs
+    for l:idx in range(len(a:normalDefs))
+	" The visual mapping must only be overridden on the last iteration; all
+	" repeat mappings must be defined using the original RHS of the visual
+	" mapping. 
+	let l:isLastNormalDef = (l:idx == len(a:normalDefs) - 1)
+
 	call call('repeatableMapping#makeCrossRepeatable',
-	\   [l:normalMapCmd, l:normalLhs, l:normalMapName,
-	\    a:visualMapCmd, a:visualLhs, a:visualMapName] +
+	\   a:normalDefs[l:idx] +
+	\   [(l:isLastNormalDef ? a:visualMapCmd : ''), a:visualLhs, a:visualMapName] +
 	\   a:000
 	\)
     endfor
