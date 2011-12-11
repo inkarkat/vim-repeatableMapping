@@ -14,6 +14,9 @@
 "				repeatableMapping#makeMultipleCrossRepeatable()
 "				for the special case of multiple normal mode
 "				mappings in ingotextobjects.vim. 
+"				FIX: Correct fallback for
+"				repeatableMapping#makeCrossRepeatable() and pass
+"				optional arguments, too. 
 "	006	08-Dec-2011	Rename variables; just a single-letter
 "				difference isn't enough. 
 "				Implement fallback for
@@ -117,8 +120,8 @@ function! repeatableMapping#makeCrossRepeatable( normalMapCmd, normalLhs, normal
 	" The visualrepeat plugin isn't installed. Fall back to mapping them
 	" separately, with just the <Plug>ReenterVisualMode feature for the
 	" visual mode mapping. 
-	if ! empty(a:normalMapCmd) | call repeatableMapping#makePlugMappingRepeatable(a:normalMapCmd, a:normalLhs, a:normalMapName) | endif
-	if ! empty(a:visualMapCmd) | call repeatableMapping#makePlugMappingRepeatable(a:visualMapCmd, a:visualLhs, a:visualMapName) | endif
+	if ! empty(a:normalMapCmd) | call call('repeatableMapping#makeRepeatable', [a:normalMapCmd, a:normalLhs, a:normalMapName] + a:000) | endif
+	if ! empty(a:visualMapCmd) | call call('repeatableMapping#makeRepeatable', [a:visualMapCmd, a:visualLhs, a:visualMapName] + a:000) | endif
 	return
     endif
 
