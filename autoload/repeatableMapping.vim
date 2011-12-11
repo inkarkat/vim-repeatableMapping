@@ -10,6 +10,10 @@
 " Maintainer:	Ingo Karkat <ingo@karkat.de>
 "
 " REVISION	DATE		REMARKS 
+"	007	12-Dec-2011	Add
+"				repeatableMapping#makeMultipleCrossRepeatable()
+"				for the special case of multiple normal mode
+"				mappings in ingotextobjects.vim. 
 "	006	08-Dec-2011	Rename variables; just a single-letter
 "				difference isn't enough. 
 "				Implement fallback for
@@ -155,6 +159,19 @@ echomsg '****' l:visualPlugMapping
 echomsg '****' l:repeatPlugMapping
 echomsg '****' l:normalLhsMapping
 echomsg '****' l:visualLhsMapping
+endfunction
+
+function! repeatableMapping#makeMultipleCrossRepeatable( normalDefs, visualMapCmd, visualLhs, visualMapName, ... )
+    " By simply iterating over the normal mode mappings, the visual mappings
+    " will be re-defined all the time, but this isn't problematic, just a little
+    " bit inefficient. However, this case is rather rare, so it should be fine. 
+    for [l:normalMapCmd, l:normalLhs, l:normalMapName] in a:normalDefs
+	call call('repeatableMapping#makeCrossRepeatable',
+	\   [l:normalMapCmd, l:normalLhs, l:normalMapName,
+	\    a:visualMapCmd, a:visualLhs, a:visualMapName] +
+	\   a:000
+	\)
+    endfor
 endfunction
 
 let &cpo = s:save_cpo
