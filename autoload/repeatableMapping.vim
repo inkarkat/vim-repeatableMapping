@@ -17,6 +17,10 @@
 "				FIX: Correct fallback for
 "				repeatableMapping#makeCrossRepeatable() and pass
 "				optional arguments, too. 
+"				FIX: Must :runtime visualrepeat plugin before
+"				the existence check when repeatableMappings are
+"				defined in plugins that are sourced before the
+"				visualrepeat plugin. 
 "	006	08-Dec-2011	Rename variables; just a single-letter
 "				difference isn't enough. 
 "				Implement fallback for
@@ -117,6 +121,9 @@ function! repeatableMapping#makeCrossRepeatable( normalMapCmd, normalLhs, normal
     if a:normalMapName ==# a:visualMapName | throw 'ASSERT: normalMapName and visualMapName must be different' | endif
 
     if ! exists('g:loaded_visualrepeat')
+	runtime plugin/visualrepeat.vim
+    endif
+    if ! exists('g:loaded_visualrepeat') || ! g:loaded_visualrepeat
 	" The visualrepeat plugin isn't installed. Fall back to mapping them
 	" separately, with just the <Plug>ReenterVisualMode feature for the
 	" visual mode mapping. 
