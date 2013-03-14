@@ -5,8 +5,6 @@
 description			|repeatableMapping-description|
 usage				|repeatableMapping-usage|
 installation			|repeatableMapping-installation|
-configuration			|repeatableMapping-configuration|
-integration			|repeatableMapping-integration|
 limitations			|repeatableMapping-limitations|
 known problems			|repeatableMapping-known-problems|
 todo				|repeatableMapping-todo|
@@ -14,6 +12,12 @@ history				|repeatableMapping-history|
 
 ==============================================================================
 DESCRIPTION				       *repeatableMapping-description*
+
+This plugin simplifies the application of the repeat.vim and visualrepeat.vim
+repeat functionality to existing mappings. As with repeat.vim, all
+embellishments are optional; if the corresponding plugin isn't available, the
+call will be ignored and the original mappings persist unchanged (though
+without any repeat functionality). 
 
 RETROFIT MAPPING REPETITION						    * 
 Some plugins provide out-of-the-box support for repeat.vim, many do not.
@@ -26,6 +30,7 @@ do not directly use repeat.vim. It also offers a succinct way for custom
 mappings to acquire repeatability, and spares them the definition of
 <Plug>-mappings and adding the repeat#set() boilerplate code themselves. 
 
+
 VISUAL MODE REPETITION							    * 
 repeat.vim only supports normal mode repetition, as this is the only
 repetition that is built into Vim. However, one can define repetition in
@@ -36,9 +41,9 @@ entire lines in linewise visual mode, keeps the current cursor position in
 characterwise visual mode, and does nothing (sensible) in blockwise visual
 mode.) 
 
-The <Plug>ReenterVisualMode mapping allows to apply repeat.vim repetition to
+The <Plug>(ReenterVisualMode) mapping allows to apply repeat.vim repetition to
 visual mode commands; just prepend it in the call to repeat#set(): >
-    vnoremap <silent> <Plug>MyMapping ...:silent! call repeat#set("\<Plug>ReenterVisualMode\<Plug>MyMapping")<CR>
+    vnoremap <silent> <Plug>MyMapping ...:silent! call repeat#set("\<Plug>(ReenterVisualMode)\<Plug>MyMapping")<CR>
 
 If a visual mode mapping is repeated from an active visual selection, that
 selection is the affected area for the repetition. If repetition is invoked
@@ -49,30 +54,35 @@ If a non-visual mode mapping is repeated from an active visual selection, it
 won't (can't) apply to the visual selection, but to whatever that mapping
 typically applies. So, you can only repeat previous visual mode mappings on
 a visual selection! The only way around this is to cross-link both mapping
-types, and to use an even more intelligent version of the repeat definition
-in visual mode. 
+types, and to use a more intelligent version of the repeat definition in
+visual mode. 
 
-Through visualrepeat.vim, it is possible to make normal mode and visual mode
-mappings repeat each other, with the normal mode mapping through the visual
-mode mapping repeated over the visual selection, and the visual mode mapping
-repeated over a new selection starting at the cursor position, with the same
-size as the last visual selection (times [count]). 
-For this, use the repeatableMapping#makeCrossRepeatable() function. 
+Through the |visualrepeat.vim| plugin, it is possible to make normal mode and
+visual mode mappings repeat each other, with the normal mode mapping repeated
+over the visual selection, and the visual mode mapping repeated over a new
+selection starting at the cursor position, with the same size as the last
+visual selection (times [count]). 
+For this, use the |repeatableMapping#makeCrossRepeatable()| function, for
+single normal mode and visual mode mappings, and
+|repeatableMapping#makeMultipleCrossRepeatable()| for multiple normal mode and
+a single visual mode mapping. 
 
 ==============================================================================
 USAGE						     *repeatableMapping-usage*
 
-First define your mapping in the usual way:
+RETROFIT MAPPING REPETITION						    * 
+First define your mapping in the usual way: >
     nnoremap <silent> <Leader>v :version<CR>
 Then make the mapping repeatable; this will redefine the original mapping
 and insert the call to repeat#set() at the end. >
-    silent! call repeatableMapping#makeRepeatable('nnoremap', '<Leader>v', 'Test2')
+    silent! call repeatableMapping#makeRepeatable('nnoremap', '<Leader>v', 'ShowVersion')
+>
 The processing requires the following information:
 - The original mapping command (for the map-mode, whether "noremap" or not,
   any optional map-arguments like "<buffer>"; "<silent>" is added
   automatically to avoid showing the repeat invocation). 
 - The mapping's lhs (i.e. keys that invoke the mapping). 
-- A unique name for the intermediate <Plug> mapping that needs to be created
+- A unique name for the intermediate <Plug>-mapping that needs to be created
   so that repeat.vim can invoke it. 
 - Optional: The default count that will be prefixed to the mapping if no
   explicit numeric argument was given; i.e. the second optional argument of
@@ -84,11 +94,26 @@ If you already have a <Plug> mapping: >
     vmap <Leader>v <Plug>ShowVersion
 You can redefine the <Plug> mapping directly, and just have the call to
 repeat#set() appended: >
-    silent! call repeatableMapping#makeRepeatable('vnoremap', '<Plug>ShowVersion')
+    silent! call repeatableMapping#makePlugMappingRepeatable('vnoremap', '<Plug>ShowVersion')
 This is especially useful to retrofit existing visual mode mappings with the
 ability to be repeatable, in conjunction with the visual mode repetition
 described above. 
 
+VISUAL MODE REPETITION							    * 
+First define your normal and visual mode mappings: >
+    nnoremap <buffer> <LocalLeader>qq :s/^/> /<CR>
+    vnoremap <buffer> <LocalLeader>q  :s/^/> /<CR>
+<
+You could now make both mappings repeatable via two separate calls to
+|repeatableMapping#makeRepeatable()|, as described in the above section, but
+with that, the mappings won't repeat each other. Therefore, it is recommended
+to use |repeatableMapping#makeCrossRepeatable()|, so that the normal mode
+mapping can be repeated over a visual selection and vice versa: >
+    silent! call repeatableMapping#makeCrossRepeatable(
+    \   'nnoremap <buffer>', '<LocalLeader>qq', 'QuoteLine',
+    \   'vnoremap <buffer>', '<LocalLeader>q',  'QuoteSelection'
+    \) 
+<
 ==============================================================================
 INSTALLATION				      *repeatableMapping-installation*
 
@@ -103,18 +128,10 @@ To uninstall, use the |:RmVimball| command.
 DEPENDENCIES				      *repeatableMapping-dependencies*
 
 - Requires Vim 7.0 or higher. 
-
-==============================================================================
-CONFIGURATION				     *repeatableMapping-configuration*
-
-For a permanent configuration, put the following commands into your |vimrc|: 
-
-						*g:repeatableMapping_MyOption*
-To change the default TODO from FOO to BAR, use: >
-    let g:repeatableMapping_MyOption = 'BAR'
-<
-==============================================================================
-INTEGRATION				       *repeatableMapping-integration*
+- repeat.vim (vimscript #2136) plugin (optional, but without it this plugin
+  doesn't provide any functionality).
+- visualrepeat.vim (vimscript #3848 plugin) (optional, but recommended for
+  cross-repeat functionality). 
 
 ==============================================================================
 LIMITATIONS				       *repeatableMapping-limitations*
@@ -128,14 +145,14 @@ IDEAS						     *repeatableMapping-ideas*
 ==============================================================================
 HISTORY						   *repeatableMapping-history*
 
-1.00	07-Dec-2011
+1.00	13-Dec-2011
 First published version. 
 
-0.01	07-Dec-2011
+0.01	24-Sep-2008
 Started development. 
 
 ==============================================================================
-Copyright: (C) 2011 Ingo Karkat
+Copyright: (C) 2008-2011 Ingo Karkat
 The VIM LICENSE applies to this script; see |copyright|. 
 
 Maintainer:	Ingo Karkat <ingo@karkat.de>
