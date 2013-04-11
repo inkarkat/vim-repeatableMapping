@@ -1,8 +1,8 @@
 " repeatableMapping.vim: Set up mappings that can be repeated via repeat.vim. 
 "
 " DEPENDENCIES:
-"   - vimscript #2136 repeat.vim autoload script
-"   - visualrepeat plugin (optional). 
+"   - repeat.vim (vimscript #2136) autoload script (optional). 
+"   - visualrepeat.vim (vimscript #3848) autoload script (optional). 
 "
 " Copyright: (C) 2008-2011 Ingo Karkat
 "   The VIM LICENSE applies to this script; see ':help copyright'. 
