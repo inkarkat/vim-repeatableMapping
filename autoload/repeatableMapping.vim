@@ -13,6 +13,12 @@
 "   1.10.010	17-Apr-2013	FIX: Optional a:defaultCount argument for
 "				repeat#set() is only used when visualrepeat.vim
 "				is not installed.
+"				ENH: Insert the repeat calls after the last
+"				<CR>, even if it is not at the end of the
+"				original mapping. This allows preserving the
+"				count for those mappings, too.
+"				Consider actual visual map mode of
+"				a:visualMapCmd (one of 'v', 'x', or 's').
 "   1.10.009	12-Apr-2013	ENH: Enable cross-repeat for existing
 "				<Plug>-mappings (as provided by plugins), too.
 "				The new functions parallel to the existing ones
@@ -80,27 +86,30 @@ nnoremap <silent> <expr> <Plug>(ReenterVisualMode) <SID>ReenterVisualMode()
 function! s:GetRhsAndCmdJoiner( lhs, mapMode )
     let l:rhs = maparg(a:lhs, a:mapMode)
     let l:rhs = substitute(l:rhs, '|', '<Bar>', 'g')	" '|' must be escaped, or the map command will end prematurely.
-    if l:rhs =~? ':.*<CR>$'
-	let l:rhs = substitute(l:rhs, '\c<CR>$', '', '')
+    if l:rhs =~? ':.*<CR>'
+	let [l:rhsBefore, l:rhsAfter] = matchlist(l:rhs, '^\(.*\)\c<CR>\(.*\)$')[1:2]
 	let l:cmdJoiner = '<Bar>'
     else
+	let l:rhsBefore = l:rhs
 	let l:cmdJoiner = ':'
+	let l:rhsAfter = ''
     endif
 
-    return [l:rhs, l:cmdJoiner]
+    return [l:rhsBefore, l:cmdJoiner, l:rhsAfter]
 endfunction
 
 function! s:MakePlugMappingWithRepeat( mapCmd, lhs, plugName, ... )
     let l:mapMode = (a:mapCmd =~# '^\w\%(nore\)\?map' ? a:mapCmd[0] : '')
 
-    let [l:rhs, l:cmdJoiner] = s:GetRhsAndCmdJoiner(a:lhs, l:mapMode)
+    let [l:rhsBefore, l:cmdJoiner, l:rhsAfter] = s:GetRhsAndCmdJoiner(a:lhs, l:mapMode)
 
-    let l:plugMapping = a:mapCmd . ' <silent> ' . a:plugName . ' ' . l:rhs .
+    let l:plugMapping = a:mapCmd . ' <silent> ' . a:plugName . ' ' . l:rhsBefore .
     \	l:cmdJoiner . 'silent! call repeat#set("' .
-    \	(l:mapMode ==# 'v' ? '\<Plug>(ReenterVisualMode)' : '') .
+    \	(l:mapMode =~# '^[vxs]$' ? '\<Plug>(ReenterVisualMode)' : '') .
     \	'\' . a:plugName .
     \	'"' . (a:0 ? ', ' . a:1 : '') .
-    \	')<CR>'
+    \	')<CR>' .
+    \   l:rhsAfter
 "****D echomsg l:plugMapping
     execute l:plugMapping
 endfunction
@@ -208,24 +217,27 @@ function! repeatableMapping#makeCrossRepeatable( normalMapCmd, normalLhs, normal
     let l:normalPlugName = '<Plug>' . a:normalMapName
     let l:visualPlugName = '<Plug>' . a:visualMapName
 
-    let [l:normalRhs, l:normalCmdJoiner] = s:GetRhsAndCmdJoiner(a:normalLhs, 'n')
-    let [l:visualRhs, l:visualCmdJoiner] = s:GetRhsAndCmdJoiner(a:visualLhs, 'v')
+    let [l:normalRhsBefore, l:normalCmdJoiner, l:normalRhsAfter] = s:GetRhsAndCmdJoiner(a:normalLhs, 'n')
+    let [l:visualRhsBefore, l:visualCmdJoiner, l:visualRhsAfter] = s:GetRhsAndCmdJoiner(a:visualLhs, a:visualMapCmd[0])
 
     let l:normalPlugMapping = a:normalMapCmd . ' <silent> ' . l:normalPlugName . ' ' .
-    \	l:normalRhs .
+    \	l:normalRhsBefore .
     \	l:normalCmdJoiner .
-    \	call('s:RepeatSection', [l:normalPlugName, l:visualPlugName] + a:000)
+    \	call('s:RepeatSection', [l:normalPlugName, l:visualPlugName] + a:000) .
+    \   l:normalRhsAfter
 
     let l:visualPlugMapping = a:visualMapCmd . ' <silent> ' . l:visualPlugName . ' ' .
-    \	l:visualRhs .
+    \	l:visualRhsBefore .
     \	l:visualCmdJoiner .
-    \	call('s:RepeatSection', [l:visualPlugName, l:visualPlugName] + a:000)
+    \	call('s:RepeatSection', [l:visualPlugName, l:visualPlugName] + a:000) .
+    \   l:visualRhsAfter
 
     let l:repeatPlugMapping = a:normalMapCmd . ' <silent> ' . l:visualPlugName . ' ' .
     \	":<C-u>execute 'normal!' v:count1 . 'v' . (visualmode() !=# 'V' && &selection ==# 'exclusive' ? ' ' : '')<CR>" .
-    \	l:visualRhs .
+    \	l:visualRhsBefore .
     \	l:visualCmdJoiner .
-    \	call('s:RepeatSection', [l:visualPlugName, l:visualPlugName] + a:000)
+    \	call('s:RepeatSection', [l:visualPlugName, l:visualPlugName] + a:000) .
+    \   l:visualRhsAfter
 
     if ! empty(a:normalMapCmd)
 	execute l:normalPlugMapping
@@ -286,24 +298,27 @@ function! repeatableMapping#makePlugMappingCrossRepeatable( normalMapCmd, normal
 	return
     endif
 
-    let [l:normalRhs, l:normalCmdJoiner] = s:GetRhsAndCmdJoiner(a:normalMapName, 'n')
-    let [l:visualRhs, l:visualCmdJoiner] = s:GetRhsAndCmdJoiner(a:visualMapName, 'v')
+    let [l:normalRhsBefore, l:normalCmdJoiner, l:normalRhsAfter] = s:GetRhsAndCmdJoiner(a:normalMapName, 'n')
+    let [l:visualRhsBefore, l:visualCmdJoiner, l:visualRhsAfter] = s:GetRhsAndCmdJoiner(a:visualMapName, a:visualMapCmd[0])
 
     let l:normalPlugMapping = a:normalMapCmd . ' <silent> ' . a:normalMapName . ' ' .
-    \	l:normalRhs .
+    \	l:normalRhsBefore .
     \	l:normalCmdJoiner .
-    \	call('s:RepeatSection', [a:normalMapName, a:visualMapName] + a:000)
+    \	call('s:RepeatSection', [a:normalMapName, a:visualMapName] + a:000) .
+    \   l:normalRhsAfter
 
     let l:visualPlugMapping = a:visualMapCmd . ' <silent> ' . a:visualMapName . ' ' .
-    \	l:visualRhs .
+    \	l:visualRhsBefore .
     \	l:visualCmdJoiner .
-    \	call('s:RepeatSection', [a:visualMapName, a:visualMapName] + a:000)
+    \	call('s:RepeatSection', [a:visualMapName, a:visualMapName] + a:000) .
+    \   l:visualRhsAfter
 
     let l:repeatPlugMapping = a:normalMapCmd . ' <silent> ' . a:visualMapName . ' ' .
     \	":<C-u>execute 'normal!' v:count1 . 'v' . (visualmode() !=# 'V' && &selection ==# 'exclusive' ? ' ' : '')<CR>" .
-    \	l:visualRhs .
+    \	l:visualRhsBefore .
     \	l:visualCmdJoiner .
-    \	call('s:RepeatSection', [a:visualMapName, a:visualMapName] + a:000)
+    \	call('s:RepeatSection', [a:visualMapName, a:visualMapName] + a:000) .
+    \   l:visualRhsAfter
 
     if ! empty(a:normalMapCmd)
 	execute l:normalPlugMapping
