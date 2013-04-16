@@ -1,45 +1,51 @@
-" repeatableMapping.vim: Set up mappings that can be repeated via repeat.vim. 
+" repeatableMapping.vim: Set up mappings that can be repeated via repeat.vim.
 "
 " DEPENDENCIES:
-"   - repeat.vim (vimscript #2136) autoload script (optional). 
-"   - visualrepeat.vim (vimscript #3848) autoload script (optional). 
+"   - repeat.vim (vimscript #2136) autoload script (optional)
+"   - visualrepeat.vim (vimscript #3848) autoload script (optional)
 "
-" Copyright: (C) 2008-2011 Ingo Karkat
-"   The VIM LICENSE applies to this script; see ':help copyright'. 
+" Copyright: (C) 2008-2013 Ingo Karkat
+"   The VIM LICENSE applies to this script; see ':help copyright'.
 "
 " Maintainer:	Ingo Karkat <ingo@karkat.de>
 "
-" REVISION	DATE		REMARKS 
-"   1.00.008	13-Dec-2011	Consistency: Renamed variables. 
-"				Add documentation for public functions. 
-"				Rename <Plug>ReenterVisualMode. 
+" REVISION	DATE		REMARKS
+"   1.10.009	12-Apr-2013	ENH: Enable cross-repeat for existing
+"				<Plug>-mappings (as provided by plugins), too.
+"				The new functions parallel to the existing ones
+"				are
+"				repeatableMapping#makePlugMappingCrossRepeatable(),
+"				repeatableMapping#makeMultipleCrossRepeatable().
+"   1.00.008	13-Dec-2011	Consistency: Renamed variables.
+"				Add documentation for public functions.
+"				Rename <Plug>ReenterVisualMode.
 "	007	12-Dec-2011	Add
 "				repeatableMapping#makeMultipleCrossRepeatable()
 "				for the special case of multiple normal mode
-"				mappings in ingotextobjects.vim. 
+"				mappings in ingotextobjects.vim.
 "				FIX: Correct fallback for
 "				repeatableMapping#makeCrossRepeatable() and pass
-"				optional arguments, too. 
+"				optional arguments, too.
 "				FIX: Must :runtime visualrepeat plugin before
 "				the existence check when repeatableMappings are
 "				defined in plugins that are sourced before the
-"				visualrepeat plugin. 
+"				visualrepeat plugin.
 "	006	08-Dec-2011	Rename variables; just a single-letter
-"				difference isn't enough. 
+"				difference isn't enough.
 "				Implement fallback for
 "				repeatableMapping#makeCrossRepeatable when
-"				visualrepeat.vim isn't available. 
+"				visualrepeat.vim isn't available.
 "	005	06-Dec-2011	<Plug>ReenterVisualMode: If [count] is given,
-"				the size is multiplied accordingly. 
+"				the size is multiplied accordingly.
 "	004	30-Sep-2011	Automatically map <Plug>-mapping with <silent>
-"				to avoid showing the repeat invocation. 
-"	003	17-Mar-2011	Factor out s:MakePlugMappingWithRepeat(). 
+"				to avoid showing the repeat invocation.
+"	003	17-Mar-2011	Factor out s:MakePlugMappingWithRepeat().
 "				Add
 "				repeatableMapping#makePlugMappingRepeatable()
 "				for the case when a <Plug> mapping already
-"				exists and just needs the repeat#set() appended. 
+"				exists and just needs the repeat#set() appended.
 "	002	25-Sep-2008	BF: '|' must be escaped, or the map command will
-"				end prematurely.  
+"				end prematurely.
 "	001	24-Sep-2008	file creation
 let s:save_cpo = &cpo
 set cpo&vim
@@ -47,7 +53,7 @@ set cpo&vim
 function! s:ReenterVisualMode()
     if visualmode() ==# 'V'
 	" In linewise visual mode, the repeat command is invoked for each
-	" individual line. Thus, we only need to select the current line. 
+	" individual line. Thus, we only need to select the current line.
 	return 'V'
     elseif getpos('.') == getpos("'<") || getpos('.') == getpos("'>")
 	return 'gv'
@@ -58,19 +64,19 @@ function! s:ReenterVisualMode()
 	"   If [count] is given, the size is multiplied accordingly. This has
 	"   the side effect that a repeat with [count] will persist the expanded
 	"   size, which is different from what the normal-mode repeat does (it
-	"   keeps the scope of the original command). 
+	"   keeps the scope of the original command).
 	return v:count1 . 'v' . (visualmode() !=# 'V' && &selection ==# 'exclusive' ? ' ' : '')
 	" For ':set selection=exclusive', the final character must be
 	" re-included with <Space>, but only if this is not linewise visual
 	" mode; in that case, the <Space> would add the next line in case the
-	" last selected line is empty.  
+	" last selected line is empty.
     endif
 endfunction
 nnoremap <silent> <expr> <Plug>(ReenterVisualMode) <SID>ReenterVisualMode()
 
 function! s:GetRhsAndCmdJoiner( lhs, mapMode )
     let l:rhs = maparg(a:lhs, a:mapMode)
-    let l:rhs = substitute(l:rhs, '|', '<Bar>', 'g')	" '|' must be escaped, or the map command will end prematurely.  
+    let l:rhs = substitute(l:rhs, '|', '<Bar>', 'g')	" '|' must be escaped, or the map command will end prematurely.
     if l:rhs =~? ':.*<CR>$'
 	let l:rhs = substitute(l:rhs, '\c<CR>$', '', '')
 	let l:cmdJoiner = '<Bar>'
@@ -86,9 +92,9 @@ function! s:MakePlugMappingWithRepeat( mapCmd, lhs, plugName, ... )
 
     let [l:rhs, l:cmdJoiner] = s:GetRhsAndCmdJoiner(a:lhs, l:mapMode)
 
-    let l:plugMapping = a:mapCmd . ' <silent> ' . a:plugName . ' ' . l:rhs . 
-    \	l:cmdJoiner . 'silent! call repeat#set("' . 
-    \	(l:mapMode ==# 'v' ? '\<Plug>(ReenterVisualMode)' : '') . 
+    let l:plugMapping = a:mapCmd . ' <silent> ' . a:plugName . ' ' . l:rhs .
+    \	l:cmdJoiner . 'silent! call repeat#set("' .
+    \	(l:mapMode ==# 'v' ? '\<Plug>(ReenterVisualMode)' : '') .
     \	'\' . a:plugName .
     \	'"' . (a:0 ? ', ' . a:1 : '') .
     \	')<CR>'
@@ -99,19 +105,19 @@ endfunction
 function! repeatableMapping#makeRepeatable( mapCmd, lhs, mapName, ... )
 "******************************************************************************
 "* PURPOSE:
-"   Make the mapping of a:lhs repeatable through a new a:mapName <Plug>-mapping. 
+"   Make the mapping of a:lhs repeatable through a new a:mapName <Plug>-mapping.
 "* ASSUMPTIONS / PRECONDITIONS:
-"   None. 
+"   None.
 "* EFFECTS / POSTCONDITIONS:
-"   Defines new <Plug>-mapping. 
-"   Modifies the original a:lhs mapping to use the <Plug>-mapping. 
+"   Defines new <Plug>-mapping.
+"   Modifies the original a:lhs mapping to use the <Plug>-mapping.
 "* INPUTS:
 "   a:mapCmd	The original mapping command and optional map-arguments used
-"		(like "<buffer>"). 
-"   a:lhs	The mapping's lhs (i.e. keys that invoke the mapping). 
-"   a:mapName	Name of the intermediate <Plug>-mapping that is created. 
-"* RETURN VALUES: 
-"   None. 
+"		(like "<buffer>").
+"   a:lhs	The mapping's lhs (i.e. keys that invoke the mapping).
+"   a:mapName	Name of the intermediate <Plug>-mapping that is created.
+"* RETURN VALUES:
+"   None.
 "******************************************************************************
     let l:plugName = '<Plug>' . a:mapName
     call call('s:MakePlugMappingWithRepeat', [a:mapCmd, a:lhs, l:plugName] + a:000)
@@ -124,17 +130,17 @@ endfunction
 function! repeatableMapping#makePlugMappingRepeatable( mapCmd, mapName, ... )
 "******************************************************************************
 "* PURPOSE:
-"   Make the <Plug>-mapping a:mapName repeatable. 
+"   Make the <Plug>-mapping a:mapName repeatable.
 "* ASSUMPTIONS / PRECONDITIONS:
-"   None. 
+"   None.
 "* EFFECTS / POSTCONDITIONS:
-"   Redefines the a:mapName <Plug>-mapping. 
+"   Redefines the a:mapName <Plug>-mapping.
 "* INPUTS:
 "   a:mapCmd	The original mapping command and optional map-arguments used
-"		(like "<buffer>"). 
-"   a:mapName	Name of the <Plug>-mapping to be made repeatable. 
-"* RETURN VALUES: 
-"   None. 
+"		(like "<buffer>").
+"   a:mapName	Name of the <Plug>-mapping to be made repeatable.
+"* RETURN VALUES:
+"   None.
 "******************************************************************************
     call call('s:MakePlugMappingWithRepeat', [a:mapCmd, a:mapName, a:mapName] + a:000)
 endfunction
@@ -154,29 +160,29 @@ function! repeatableMapping#makeCrossRepeatable( normalMapCmd, normalLhs, normal
 "******************************************************************************
 "* PURPOSE:
 "   Make the passed normal and visual mode mappings repeatable, both in the same
-"   mode and across the different modes. 
+"   mode and across the different modes.
 "* ASSUMPTIONS / PRECONDITIONS:
-"   None. 
+"   None.
 "* EFFECTS / POSTCONDITIONS:
-"   Defines new <Plug>-mappings for normal and visual mode. 
+"   Defines new <Plug>-mappings for normal and visual mode.
 "   Modifies the original a:normalLhs and a:visualLhs mappings to use the
-"   corresponding <Plug>-mappings. 
+"   corresponding <Plug>-mappings.
 "* INPUTS:
 "   a:normalMapCmd	The original normal mode mapping command and optional
-"			map-arguments used (like "<buffer>"). 
-"   a:normalLhs		The mapping's lhs (i.e. keys that invoke the mapping). 
-"   a:normalMapName	Name of the intermediate <Plug>-mapping that is created. 
+"			map-arguments used (like "<buffer>").
+"   a:normalLhs		The mapping's lhs (i.e. keys that invoke the mapping).
+"   a:normalMapName	Name of the intermediate <Plug>-mapping that is created.
 "			This must be different from the a:visualMapName;
 "			typically the normal mode name contains the scope, e.g.
-"			"Line" or "Word". 
+"			"Line" or "Word".
 "   a:visualMapCmd	The original visual mode mapping command and optional
-"			map-arguments used (like "<buffer>"). 
-"   a:visualLhs		The mapping's lhs (i.e. keys that invoke the mapping). 
-"   a:visualMapName	Name of the intermediate <Plug>-mapping that is created. 
+"			map-arguments used (like "<buffer>").
+"   a:visualLhs		The mapping's lhs (i.e. keys that invoke the mapping).
+"   a:visualMapName	Name of the intermediate <Plug>-mapping that is created.
 "			This must be different from the a:normalMapName;
-"			typically the visual mode name contains "Selection". 
-"* RETURN VALUES: 
-"   None. 
+"			typically the visual mode name contains "Selection".
+"* RETURN VALUES:
+"   None.
 "******************************************************************************
     if a:normalMapName ==# a:visualMapName | throw 'ASSERT: normalMapName and visualMapName must be different' | endif
 
@@ -186,7 +192,7 @@ function! repeatableMapping#makeCrossRepeatable( normalMapCmd, normalLhs, normal
     if ! exists('g:loaded_visualrepeat') || ! g:loaded_visualrepeat
 	" The visualrepeat plugin isn't installed. Fall back to mapping them
 	" separately, with just the <Plug>(ReenterVisualMode) feature for the
-	" visual mode mapping. 
+	" visual mode mapping.
 	if ! empty(a:normalMapCmd) | call call('repeatableMapping#makeRepeatable', [a:normalMapCmd, a:normalLhs, a:normalMapName] + a:000) | endif
 	if ! empty(a:visualMapCmd) | call call('repeatableMapping#makeRepeatable', [a:visualMapCmd, a:visualLhs, a:visualMapName] + a:000) | endif
 	return
@@ -234,46 +240,156 @@ echomsg '****' l:repeatPlugMapping
 echomsg '****' l:normalLhsMapping
 echomsg '****' l:visualLhsMapping
 endfunction
+function! repeatableMapping#makePlugMappingCrossRepeatable( normalMapCmd, normalMapName, visualMapCmd, visualMapName, ... )
+"******************************************************************************
+"* PURPOSE:
+"   Make the passed normal and visual mode <Plug>-mappings repeatable, both in
+"   the same mode and across the different modes.
+"* ASSUMPTIONS / PRECONDITIONS:
+"   None.
+"* EFFECTS / POSTCONDITIONS:
+"   Redefines the original a:normalMapName and a:visualMapName mappings.
+"* INPUTS:
+"   a:normalMapCmd	The original normal mode mapping command and optional
+"			map-arguments used (like "<buffer>").
+"   a:normalMapName	Name of the <Plug>-mapping to be made repeatable.
+"			This must be different from the a:visualMapName;
+"			typically the normal mode name contains the scope, e.g.
+"			"Line" or "Word".
+"   a:visualMapCmd	The original visual mode mapping command and optional
+"			map-arguments used (like "<buffer>").
+"   a:visualMapName	Name of the <Plug>-mapping to be made repeatable.
+"			This must be different from the a:normalMapName;
+"			typically the visual mode name contains "Selection".
+"* RETURN VALUES:
+"   None.
+"******************************************************************************
+    if a:normalMapName ==# a:visualMapName | throw 'ASSERT: normalMapName and visualMapName must be different' | endif
+
+    if ! exists('g:loaded_visualrepeat')
+	runtime plugin/visualrepeat.vim
+    endif
+    if ! exists('g:loaded_visualrepeat') || ! g:loaded_visualrepeat
+	" The visualrepeat plugin isn't installed. Fall back to mapping them
+	" separately, with just the <Plug>(ReenterVisualMode) feature for the
+	" visual mode mapping.
+	if ! empty(a:normalMapCmd) | call call('repeatableMapping#makePlugMappingRepeatable', [a:normalMapCmd, a:normalMapName] + a:000) | endif
+	if ! empty(a:visualMapCmd) | call call('repeatableMapping#makePlugMappingRepeatable', [a:visualMapCmd, a:visualMapName] + a:000) | endif
+	return
+    endif
+
+    let [l:normalRhs, l:normalCmdJoiner] = s:GetRhsAndCmdJoiner(a:normalMapName, 'n')
+    let [l:visualRhs, l:visualCmdJoiner] = s:GetRhsAndCmdJoiner(a:visualMapName, 'v')
+
+    let l:normalPlugMapping = a:normalMapCmd . ' <silent> ' . a:normalMapName . ' ' .
+    \	l:normalRhs .
+    \	l:normalCmdJoiner .
+    \	s:RepeatSection(a:normalMapName, a:visualMapName)
+
+    let l:visualPlugMapping = a:visualMapCmd . ' <silent> ' . a:visualMapName . ' ' .
+    \	l:visualRhs .
+    \	l:visualCmdJoiner .
+    \	s:RepeatSection(a:visualMapName, a:visualMapName)
+
+    let l:repeatPlugMapping = a:normalMapCmd . ' <silent> ' . a:visualMapName . ' ' .
+    \	":<C-u>execute 'normal!' v:count1 . 'v' . (visualmode() !=# 'V' && &selection ==# 'exclusive' ? ' ' : '')<CR>" .
+    \	l:visualRhs .
+    \	l:visualCmdJoiner .
+    \	s:RepeatSection(a:visualMapName, a:visualMapName)
+
+    if ! empty(a:normalMapCmd)
+	execute l:normalPlugMapping
+	execute l:repeatPlugMapping
+    endif
+    if ! empty(a:visualMapCmd)
+	execute l:visualPlugMapping
+    endif
+
+    return
+echomsg '****' l:normalPlugMapping
+echomsg '****' l:visualPlugMapping
+echomsg '****' l:repeatPlugMapping
+endfunction
 
 function! repeatableMapping#makeMultipleCrossRepeatable( normalDefs, visualMapCmd, visualLhs, visualMapName, ... )
 "******************************************************************************
 "* PURPOSE:
 "   Make the passed list of normal mode mappings and the passed visual mode
-"   mapping repeatable, both in the same mode and across the different modes. 
+"   mapping repeatable, both in the same mode and across the different modes.
 "* ASSUMPTIONS / PRECONDITIONS:
-"   None. 
+"   None.
 "* EFFECTS / POSTCONDITIONS:
-"   Defines new <Plug>-mappings for normal and visual mode. 
+"   Defines new <Plug>-mappings for normal and visual mode.
 "   Modifies the original a:normalLhs and a:visualLhs mappings to use the
-"   corresponding <Plug>-mappings. 
+"   corresponding <Plug>-mappings.
 "* INPUTS:
 "   a:normalDefs	List of normal mode mapping definitions, which are
 "			tuples of [a:normalMapCmd, a:normalLhs, a:normalMapName]
 "	a:normalMapCmd	The original normal mode mapping command and optional
-"			map-arguments used (like "<buffer>"). 
-"	a:normalLhs	The mapping's lhs (i.e. keys that invoke the mapping). 
-"	a:normalMapName	Name of the intermediate <Plug>-mapping that is created. 
+"			map-arguments used (like "<buffer>").
+"	a:normalLhs	The mapping's lhs (i.e. keys that invoke the mapping).
+"	a:normalMapName	Name of the intermediate <Plug>-mapping that is created.
 "			This must be different from the a:visualMapName;
 "			typically the normal mode name contains the scope, e.g.
-"			"Line" or "Word". 
+"			"Line" or "Word".
 "   a:visualMapCmd	The original visual mode mapping command and optional
-"			map-arguments used (like "<buffer>"). 
-"   a:visualLhs		The mapping's lhs (i.e. keys that invoke the mapping). 
-"   a:visualMapName	Name of the intermediate <Plug>-mapping that is created. 
+"			map-arguments used (like "<buffer>").
+"   a:visualLhs		The mapping's lhs (i.e. keys that invoke the mapping).
+"   a:visualMapName	Name of the intermediate <Plug>-mapping that is created.
 "			This must be different from the a:normalMapName;
-"			typically the visual mode name contains "Selection". 
-"* RETURN VALUES: 
-"   None. 
+"			typically the visual mode name contains "Selection".
+"* RETURN VALUES:
+"   None.
 "******************************************************************************
     for l:idx in range(len(a:normalDefs))
 	" The visual mapping must only be overridden on the last iteration; all
 	" repeat mappings must be defined using the original RHS of the visual
-	" mapping. 
+	" mapping.
 	let l:isLastNormalDef = (l:idx == len(a:normalDefs) - 1)
 
 	call call('repeatableMapping#makeCrossRepeatable',
 	\   a:normalDefs[l:idx] +
 	\   [(l:isLastNormalDef ? a:visualMapCmd : ''), a:visualLhs, a:visualMapName] +
+	\   a:000
+	\)
+    endfor
+endfunction
+function! repeatableMapping#makeMultiplePlugMappingCrossRepeatable( normalDefs, visualMapCmd, visualMapName, ... )
+"******************************************************************************
+"* PURPOSE:
+"   Make the passed list of normal mode <Plug>-mappings and the passed visual
+"   mode <Plug>-mapping repeatable, both in the same mode and across the
+"   different modes.
+"* ASSUMPTIONS / PRECONDITIONS:
+"   None.
+"* EFFECTS / POSTCONDITIONS:
+"   Redefines the original <Plug>-mappings for normal and visual mode.
+"* INPUTS:
+"   a:normalDefs	List of normal mode mapping definitions, which are
+"			tuples of [a:normalMapCmd, a:normalMapName]
+"	a:normalMapCmd	The original normal mode mapping command and optional
+"			map-arguments used (like "<buffer>").
+"	a:normalMapName	Name of the <Plug>-mapping to be made repeatable.
+"			This must be different from the a:visualMapName;
+"			typically the normal mode name contains the scope, e.g.
+"			"Line" or "Word".
+"   a:visualMapCmd	The original visual mode mapping command and optional
+"			map-arguments used (like "<buffer>").
+"   a:visualMapName	Name of the <Plug>-mapping to be made repeatable.
+"			This must be different from the a:normalMapName;
+"			typically the visual mode name contains "Selection".
+"* RETURN VALUES:
+"   None.
+"******************************************************************************
+    for l:idx in range(len(a:normalDefs))
+	" The visual mapping must only be overridden on the last iteration; all
+	" repeat mappings must be defined using the original RHS of the visual
+	" mapping.
+	let l:isLastNormalDef = (l:idx == len(a:normalDefs) - 1)
+
+	call call('repeatableMapping#makePlugMappingCrossRepeatable',
+	\   a:normalDefs[l:idx] +
+	\   [(l:isLastNormalDef ? a:visualMapCmd : ''), a:visualMapName] +
 	\   a:000
 	\)
     endfor
