@@ -114,14 +114,26 @@ mapping can be repeated over a visual selection and vice versa: >
     \   'vnoremap <buffer>', '<LocalLeader>q',  'QuoteSelection'
     \)
 <
+Again, if you already have <Plug> mappings (and need them for a configurable
+plugin), you can use the alternative function: >
+    silent! call repeatableMapping#makePlugMappingCrossRepeatable(
+    \   'nnoremap <buffer>', 'QuoteLine',
+    \   'vnoremap <buffer>', 'QuoteSelection'
+    \)
+Note that you need to do this _after_ any >
+    if ! hasmapto('<Plug>QuoteLine', 'n') ...
+default mapping tests; because the <Plug>-mapping is contained in the
+retrofitted mapping, the test would otherwise always be false, and the default
+mappings would be missing!
+
 ==============================================================================
 INSTALLATION				      *repeatableMapping-installation*
 
 This script is packaged as a |vimball|. If you have the "gunzip" decompressor
-in your PATH, simply edit the *.vba.gz package in Vim; otherwise, decompress
+in your PATH, simply edit the *.vmb.gz package in Vim; otherwise, decompress
 the archive first, e.g. using WinZip. Inside Vim, install by sourcing the
 vimball or via the |:UseVimball| command. >
-    vim repeatableMapping.vba.gz
+    vim repeatableMapping*.vmb.gz
     :so %
 To uninstall, use the |:RmVimball| command.
 
@@ -145,6 +157,12 @@ IDEAS						     *repeatableMapping-ideas*
 ==============================================================================
 HISTORY						   *repeatableMapping-history*
 
+1.10	RELEASEME
+ENH: Enable cross-repeat for existing <Plug>-mappings (as provided by
+plugins), too. The new functions parallel to the existing ones are
+repeatableMapping#makePlugMappingCrossRepeatable(),
+repeatableMapping#makeMultipleCrossRepeatable().
+
 1.00	13-Dec-2011
 First published version.
 
@@ -152,7 +170,7 @@ First published version.
 Started development.
 
 ==============================================================================
-Copyright: (C) 2008-2011 Ingo Karkat
+Copyright: (C) 2008-2013 Ingo Karkat
 The VIM LICENSE applies to this plugin; see |copyright|.
 
 Maintainer:	Ingo Karkat <ingo@karkat.de>
