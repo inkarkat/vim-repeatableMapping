@@ -10,6 +10,9 @@
 " Maintainer:	Ingo Karkat <ingo@karkat.de>
 "
 " REVISION	DATE		REMARKS
+"   1.10.010	17-Apr-2013	FIX: Optional a:defaultCount argument for
+"				repeat#set() is only used when visualrepeat.vim
+"				is not installed.
 "   1.10.009	12-Apr-2013	ENH: Enable cross-repeat for existing
 "				<Plug>-mappings (as provided by plugins), too.
 "				The new functions parallel to the existing ones
@@ -147,7 +150,7 @@ function! repeatableMapping#makePlugMappingRepeatable( mapCmd, mapName, ... )
     call call('s:MakePlugMappingWithRepeat', [a:mapCmd, a:mapName, a:mapName] + a:000)
 endfunction
 
-function! s:RepeatSection( normalRepeatPlug, visualRepeatPlug )
+function! s:RepeatSection( normalRepeatPlug, visualRepeatPlug, ... )
     return
     \	'silent! call repeat#set("' .
     \	'\' . a:normalRepeatPlug .
@@ -158,6 +161,7 @@ function! s:RepeatSection( normalRepeatPlug, visualRepeatPlug )
     \	')<CR>'
 
 endfunction
+
 function! repeatableMapping#makeCrossRepeatable( normalMapCmd, normalLhs, normalMapName, visualMapCmd, visualLhs, visualMapName, ... )
 "******************************************************************************
 "* PURPOSE:
@@ -210,18 +214,18 @@ function! repeatableMapping#makeCrossRepeatable( normalMapCmd, normalLhs, normal
     let l:normalPlugMapping = a:normalMapCmd . ' <silent> ' . l:normalPlugName . ' ' .
     \	l:normalRhs .
     \	l:normalCmdJoiner .
-    \	s:RepeatSection(l:normalPlugName, l:visualPlugName)
+    \	call('s:RepeatSection', [l:normalPlugName, l:visualPlugName] + a:000)
 
     let l:visualPlugMapping = a:visualMapCmd . ' <silent> ' . l:visualPlugName . ' ' .
     \	l:visualRhs .
     \	l:visualCmdJoiner .
-    \	s:RepeatSection(l:visualPlugName, l:visualPlugName)
+    \	call('s:RepeatSection', [l:visualPlugName, l:visualPlugName] + a:000)
 
     let l:repeatPlugMapping = a:normalMapCmd . ' <silent> ' . l:visualPlugName . ' ' .
     \	":<C-u>execute 'normal!' v:count1 . 'v' . (visualmode() !=# 'V' && &selection ==# 'exclusive' ? ' ' : '')<CR>" .
     \	l:visualRhs .
     \	l:visualCmdJoiner .
-    \	s:RepeatSection(l:visualPlugName, l:visualPlugName)
+    \	call('s:RepeatSection', [l:visualPlugName, l:visualPlugName] + a:000)
 
     if ! empty(a:normalMapCmd)
 	execute l:normalPlugMapping
@@ -288,18 +292,18 @@ function! repeatableMapping#makePlugMappingCrossRepeatable( normalMapCmd, normal
     let l:normalPlugMapping = a:normalMapCmd . ' <silent> ' . a:normalMapName . ' ' .
     \	l:normalRhs .
     \	l:normalCmdJoiner .
-    \	s:RepeatSection(a:normalMapName, a:visualMapName)
+    \	call('s:RepeatSection', [a:normalMapName, a:visualMapName] + a:000)
 
     let l:visualPlugMapping = a:visualMapCmd . ' <silent> ' . a:visualMapName . ' ' .
     \	l:visualRhs .
     \	l:visualCmdJoiner .
-    \	s:RepeatSection(a:visualMapName, a:visualMapName)
+    \	call('s:RepeatSection', [a:visualMapName, a:visualMapName] + a:000)
 
     let l:repeatPlugMapping = a:normalMapCmd . ' <silent> ' . a:visualMapName . ' ' .
     \	":<C-u>execute 'normal!' v:count1 . 'v' . (visualmode() !=# 'V' && &selection ==# 'exclusive' ? ' ' : '')<CR>" .
     \	l:visualRhs .
     \	l:visualCmdJoiner .
-    \	s:RepeatSection(a:visualMapName, a:visualMapName)
+    \	call('s:RepeatSection', [a:visualMapName, a:visualMapName] + a:000)
 
     if ! empty(a:normalMapCmd)
 	execute l:normalPlugMapping
