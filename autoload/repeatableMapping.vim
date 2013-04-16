@@ -116,6 +116,7 @@ function! repeatableMapping#makeRepeatable( mapCmd, lhs, mapName, ... )
 "		(like "<buffer>").
 "   a:lhs	The mapping's lhs (i.e. keys that invoke the mapping).
 "   a:mapName	Name of the intermediate <Plug>-mapping that is created.
+"   a:defaultCount  Optional default count for repeat#set().
 "* RETURN VALUES:
 "   None.
 "******************************************************************************
@@ -139,6 +140,7 @@ function! repeatableMapping#makePlugMappingRepeatable( mapCmd, mapName, ... )
 "   a:mapCmd	The original mapping command and optional map-arguments used
 "		(like "<buffer>").
 "   a:mapName	Name of the <Plug>-mapping to be made repeatable.
+"   a:defaultCount  Optional default count for repeat#set().
 "* RETURN VALUES:
 "   None.
 "******************************************************************************
@@ -181,6 +183,7 @@ function! repeatableMapping#makeCrossRepeatable( normalMapCmd, normalLhs, normal
 "   a:visualMapName	Name of the intermediate <Plug>-mapping that is created.
 "			This must be different from the a:normalMapName;
 "			typically the visual mode name contains "Selection".
+"   a:defaultCount  Optional default count for repeat#set().
 "* RETURN VALUES:
 "   None.
 "******************************************************************************
@@ -261,6 +264,7 @@ function! repeatableMapping#makePlugMappingCrossRepeatable( normalMapCmd, normal
 "   a:visualMapName	Name of the <Plug>-mapping to be made repeatable.
 "			This must be different from the a:normalMapName;
 "			typically the visual mode name contains "Selection".
+"   a:defaultCount  Optional default count for repeat#set().
 "* RETURN VALUES:
 "   None.
 "******************************************************************************
@@ -338,6 +342,7 @@ function! repeatableMapping#makeMultipleCrossRepeatable( normalDefs, visualMapCm
 "   a:visualMapName	Name of the intermediate <Plug>-mapping that is created.
 "			This must be different from the a:normalMapName;
 "			typically the visual mode name contains "Selection".
+"   a:defaultCount  Optional default count for repeat#set().
 "* RETURN VALUES:
 "   None.
 "******************************************************************************
@@ -378,6 +383,7 @@ function! repeatableMapping#makeMultiplePlugMappingCrossRepeatable( normalDefs, 
 "   a:visualMapName	Name of the <Plug>-mapping to be made repeatable.
 "			This must be different from the a:normalMapName;
 "			typically the visual mode name contains "Selection".
+"   a:defaultCount  Optional default count for repeat#set().
 "* RETURN VALUES:
 "   None.
 "******************************************************************************
