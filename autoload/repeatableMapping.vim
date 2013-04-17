@@ -10,7 +10,13 @@
 " Maintainer:	Ingo Karkat <ingo@karkat.de>
 "
 " REVISION	DATE		REMARKS
-"   1.10.010	17-Apr-2013	FIX: Optional a:defaultCount argument for
+"   2.00.011	18-Apr-2013	Also need to drop off <script> from the a:mapCmd
+"				to turn it into an effective <Plug> mapping
+"				command.
+"				Rework <Plug>(ReenterVisualMode) for when
+"				there's no cross-repeat to handle [count] in a
+"				way similar to the changed cross-repeat.
+"   2.00.010	17-Apr-2013	FIX: Optional a:defaultCount argument for
 "				repeat#set() is only used when visualrepeat.vim
 "				is not installed.
 "				ENH: Insert the repeat calls after the last
@@ -19,7 +25,12 @@
 "				count for those mappings, too.
 "				Consider actual visual map mode of
 "				a:visualMapCmd (one of 'v', 'x', or 's').
-"   1.10.009	12-Apr-2013	ENH: Enable cross-repeat for existing
+"				CHG: In cross-repeat, select [count] lines /
+"				times the original selection when [count] is
+"				given and different from the repeat count, and
+"				pass the original count into the repeated
+"				mapping.
+"   2.00.009	12-Apr-2013	ENH: Enable cross-repeat for existing
 "				<Plug>-mappings (as provided by plugins), too.
 "				The new functions parallel to the existing ones
 "				are
@@ -86,22 +97,54 @@ endfunction
 function! s:RecallRepeatCount()
     return (g:repeat_count ? g:repeat_count : '')
 endfunction
+" Note: We don't need to check for the existence of g:repeat_count here; the
+" normal mode repeat mapping of a visual mode mapping can only be triggered
+" through an installed repeat.vim.
+" Note: The count cannot be injected inside the :normal; it is ignored:
+"nmap <F12> :<C-u>execute 'normal! gv32'<CR>:<C-u>echomsg '****' v:count<CR>
+" What works is prepending via a map-expr:
+"nmap <F12> :<C-u>execute 'normal! gv'<CR>32:<C-u>echomsg '****' v:count<CR>
+" But somehow only when used with : Ex commands, not normal-mode commands; this
+" fails:
+"nmap <F12> :<C-u>execute 'normal! gv'<CR>32A$<Esc>
+" But this works again:
+"nmap <F12> :<C-u>execute 'normal! gv'<CR>32:<C-u>execute 'normal!' v:count . "A$\<lt>Esc>"<CR>
 vnoremap <silent> <expr> <SID>(RecallRepeatCount) <SID>RecallRepeatCount()
 
 function! repeatableMapping#ReenterVisualModeWithoutVisualRepeat()
+    let s:count = v:count
     if visualmode() ==# 'V'
-	" In linewise visual mode, the repeat command is invoked for each
-	" individual line. Thus, we only need to select the current line.
+	" If the command to be repeated was in linewise visual mode, the repeat
+	" command is invoked for each individual line. Thus, we only need to
+	" select the current line.
 	return 'V'
     elseif getpos('.') == getpos("'<") || getpos('.') == getpos("'>")
 	return 'gv'
     else
-	return repeatableMapping#ReenterVisualMode()
+	return '1v' . (&selection ==# 'exclusive' ? ' ' : '')
     endif
 endfunction
-"nnoremap <silent> <expr> <Plug>(ReenterVisualMode) repeatableMapping#ReenterVisualModeWithoutVisualRepeat()
+function! s:RecallRepeatCountWithoutVisualRepeat()
+    return (s:count ? s:count : '')
+endfunction
+vnoremap <silent> <expr> <SID>(RecallRepeatCountWithoutVisualRepeat) <SID>RecallRepeatCountWithoutVisualRepeat()
+" This gets triggered when repeating visual mode mappings that do not have
+" defined a cross-repeatable normal mode mapping. Instead, through something
+" like a simple :xmap . or the visualrepeat.vim plugin, the original visual mode
+" mapping is re-applied, using this <Plug>(ReenterVisualMode) as a bridge from
+" normal-mode back to visual mode.
+" Use :normal first to swallow the passed [count], so that it doesn't affect the
+" V / gv / 1v commands that are returned by
+" repeatableMapping#ReenterVisualModeWithoutVisualRepeat(). Then put back the
+" [count] via <SID>(RecallRepeatCountWithoutVisualRepeat) so that it applies to
+" the repeated mapping.
+" Note that without cross-repeat, a normal mode repeat of the visual mode
+" mapping will work, but always on the current line / same-size selection with
+" the original [count]. This is different from cross-repeat, where one can
+" specify [count] lines / times the original selection, with the original
+" repeat.
 nnoremap <silent> <script> <Plug>(ReenterVisualMode)
-\   :<C-u>execute 'normal!' repeatableMapping#ReenterVisualModeWithoutVisualRepeat()<CR><SID>(RecallRepeatCount)
+\   :<C-u>execute 'normal!' repeatableMapping#ReenterVisualModeWithoutVisualRepeat()<CR><SID>(RecallRepeatCountWithoutVisualRepeat)
 
 
 
@@ -136,6 +179,13 @@ function! s:MakePlugMappingWithRepeat( mapCmd, lhs, plugName, ... )
     execute l:plugMapping
 endfunction
 
+function! s:PlugMapCmd( mapCmd )
+    let l:plugMapCmd = a:mapCmd
+    let l:plugMapCmd = substitute(l:plugMapCmd, 'noremap', 'map', '')
+    let l:plugMapCmd = substitute(l:plugMapCmd, '<script>', '', '')
+    return l:plugMapCmd
+endfunction
+
 function! repeatableMapping#makeRepeatable( mapCmd, lhs, mapName, ... )
 "******************************************************************************
 "* PURPOSE:
@@ -157,7 +207,7 @@ function! repeatableMapping#makeRepeatable( mapCmd, lhs, mapName, ... )
     let l:plugName = '<Plug>' . a:mapName
     call call('s:MakePlugMappingWithRepeat', [a:mapCmd, a:lhs, l:plugName] + a:000)
 
-    let l:lhsMapping = substitute(a:mapCmd, 'noremap', 'map', '')  . ' ' . a:lhs . ' ' . l:plugName
+    let l:lhsMapping = s:PlugMapCmd(a:mapCmd)  . ' ' . a:lhs . ' ' . l:plugName
 "****D echomsg l:lhsMapping
     execute l:lhsMapping
 endfunction
@@ -270,8 +320,8 @@ function! repeatableMapping#makeCrossRepeatable( normalMapCmd, normalLhs, normal
 	execute l:visualPlugMapping
     endif
 
-    let l:normalLhsMapping = substitute(a:normalMapCmd, 'noremap', 'map', '')  . ' ' . a:normalLhs . ' ' . l:normalPlugName
-    let l:visualLhsMapping = substitute(a:visualMapCmd, 'noremap', 'map', '')  . ' ' . a:visualLhs . ' ' . l:visualPlugName
+    let l:normalLhsMapping = s:PlugMapCmd(a:normalMapCmd) . ' ' . a:normalLhs . ' ' . l:normalPlugName
+    let l:visualLhsMapping = s:PlugMapCmd(a:visualMapCmd) . ' ' . a:visualLhs . ' ' . l:visualPlugName
     if ! empty(a:normalMapCmd) | execute l:normalLhsMapping | endif
     if ! empty(a:visualMapCmd) | execute l:visualLhsMapping | endif
 
