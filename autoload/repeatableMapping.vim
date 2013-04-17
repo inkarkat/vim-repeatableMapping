@@ -59,13 +59,15 @@
 let s:save_cpo = &cpo
 set cpo&vim
 
-function! s:ReenterVisualMode()
-    if visualmode() ==# 'V'
-	" In linewise visual mode, the repeat command is invoked for each
-	" individual line. Thus, we only need to select the current line.
-	return 'V'
-    elseif getpos('.') == getpos("'<") || getpos('.') == getpos("'>")
-	return 'gv'
+function! repeatableMapping#ReenterVisualMode()
+"****D echomsg '****' v:count g:repeat_count
+    let l:isOnlyRepeatCount = (g:repeat_count == v:count)
+    let l:count = (l:isOnlyRepeatCount ? 1 : v:count1)
+    if ! l:isOnlyRepeatCount && visualmode() ==# 'V'
+	" Select [count] lines, not [count] times the previously selected lines.
+	" It would be more correct to do this for the other selection modes,
+	" too, but it's difficult to multiply their size.
+	return 'V' . (l:count > 1 ? l:count . '_' : '')
     else
 	" A normal-mode repeat of the visual mapping is triggered by repeat.vim.
 	" It establishes a new selection at the cursor position, of the same
@@ -74,14 +76,34 @@ function! s:ReenterVisualMode()
 	"   the side effect that a repeat with [count] will persist the expanded
 	"   size, which is different from what the normal-mode repeat does (it
 	"   keeps the scope of the original command).
-	return v:count1 . 'v' . (visualmode() !=# 'V' && &selection ==# 'exclusive' ? ' ' : '')
+	return l:count . 'v' . (&selection ==# 'exclusive' ? ' ' : '')
 	" For ':set selection=exclusive', the final character must be
 	" re-included with <Space>, but only if this is not linewise visual
 	" mode; in that case, the <Space> would add the next line in case the
 	" last selected line is empty.
     endif
 endfunction
-nnoremap <silent> <expr> <Plug>(ReenterVisualMode) <SID>ReenterVisualMode()
+function! s:RecallRepeatCount()
+    return (g:repeat_count ? g:repeat_count : '')
+endfunction
+vnoremap <silent> <expr> <SID>(RecallRepeatCount) <SID>RecallRepeatCount()
+
+function! repeatableMapping#ReenterVisualModeWithoutVisualRepeat()
+    if visualmode() ==# 'V'
+	" In linewise visual mode, the repeat command is invoked for each
+	" individual line. Thus, we only need to select the current line.
+	return 'V'
+    elseif getpos('.') == getpos("'<") || getpos('.') == getpos("'>")
+	return 'gv'
+    else
+	return repeatableMapping#ReenterVisualMode()
+    endif
+endfunction
+"nnoremap <silent> <expr> <Plug>(ReenterVisualMode) repeatableMapping#ReenterVisualModeWithoutVisualRepeat()
+nnoremap <silent> <script> <Plug>(ReenterVisualMode)
+\   :<C-u>execute 'normal!' repeatableMapping#ReenterVisualModeWithoutVisualRepeat()<CR><SID>(RecallRepeatCount)
+
+
 
 function! s:GetRhsAndCmdJoiner( lhs, mapMode )
     let l:rhs = maparg(a:lhs, a:mapMode)
@@ -232,8 +254,9 @@ function! repeatableMapping#makeCrossRepeatable( normalMapCmd, normalLhs, normal
     \	call('s:RepeatSection', [l:visualPlugName, l:visualPlugName] + a:000) .
     \   l:visualRhsAfter
 
-    let l:repeatPlugMapping = a:normalMapCmd . ' <silent> ' . l:visualPlugName . ' ' .
-    \	":<C-u>execute 'normal!' v:count1 . 'v' . (visualmode() !=# 'V' && &selection ==# 'exclusive' ? ' ' : '')<CR>" .
+    let l:repeatPlugMapping = a:normalMapCmd . ' <silent> <script> ' . l:visualPlugName . ' ' .
+    \	":<C-u>execute 'normal!' repeatableMapping#ReenterVisualMode()<CR>" .
+    \   '<SID>(RecallRepeatCount)' .
     \	l:visualRhsBefore .
     \	l:visualCmdJoiner .
     \	call('s:RepeatSection', [l:visualPlugName, l:visualPlugName] + a:000) .
@@ -313,8 +336,9 @@ function! repeatableMapping#makePlugMappingCrossRepeatable( normalMapCmd, normal
     \	call('s:RepeatSection', [a:visualMapName, a:visualMapName] + a:000) .
     \   l:visualRhsAfter
 
-    let l:repeatPlugMapping = a:normalMapCmd . ' <silent> ' . a:visualMapName . ' ' .
-    \	":<C-u>execute 'normal!' v:count1 . 'v' . (visualmode() !=# 'V' && &selection ==# 'exclusive' ? ' ' : '')<CR>" .
+    let l:repeatPlugMapping = a:normalMapCmd . ' <silent> <script> ' . a:visualMapName . ' ' .
+    \	":<C-u>execute 'normal!' repeatableMapping#ReenterVisualMode()<CR>" .
+    \   '<SID>(RecallRepeatCount)' .
     \	l:visualRhsBefore .
     \	l:visualCmdJoiner .
     \	call('s:RepeatSection', [a:visualMapName, a:visualMapName] + a:000) .
