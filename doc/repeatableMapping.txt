@@ -158,10 +158,12 @@ IDEAS						     *repeatableMapping-ideas*
 HISTORY						   *repeatableMapping-history*
 
 1.10	RELEASEME
-ENH: Enable cross-repeat for existing <Plug>-mappings (as provided by
-plugins), too. The new functions parallel to the existing ones are
-repeatableMapping#makePlugMappingCrossRepeatable(),
-repeatableMapping#makeMultipleCrossRepeatable().
+- ENH: Enable cross-repeat for existing <Plug>-mappings (as provided by
+  plugins), too. The new functions parallel to the existing ones are
+  repeatableMapping#makePlugMappingCrossRepeatable(),
+  repeatableMapping#makeMultipleCrossRepeatable().
+- FIX: Optional a:defaultCount argument for repeat#set() is only used when
+  visualrepeat.vim is not installed.
 
 1.00	13-Dec-2011
 First published version.
