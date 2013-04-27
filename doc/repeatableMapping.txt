@@ -36,34 +36,52 @@ repeat.vim only supports normal mode repetition, as this is the only
 repetition that is built into Vim. However, one can define repetition in
 visual mode: >
     xnoremap . :normal .<CR>
+or with pass-through of [count]: >
+    xnoremap . :execute 'normal' (v:count ? v:count : '') . '.'<CR>
 (Or better a more fancy version that only applies the repeat command over
 entire lines in linewise visual mode, keeps the current cursor position in
 characterwise visual mode, and does nothing (sensible) in blockwise visual
-mode.)
+mode. The |visualrepeat.vim| plugin provides this.)
 
 The <Plug>(ReenterVisualMode) mapping allows to apply repeat.vim repetition to
 visual mode commands; just prepend it in the call to repeat#set(): >
     vnoremap <silent> <Plug>MyMapping ...:silent! call repeat#set("\<Plug>(ReenterVisualMode)\<Plug>MyMapping")<CR>
 
-If a visual mode mapping is repeated from an active visual selection, that
-selection is the affected area for the repetition. If repetition is invoked
-in normal mode, the repetition works on a new selection starting at the
-cursor position, with the same size as the last visual selection (times
-[count]).
+If a previously used visual mode mapping is repeated from an active visual
+selection, that selection is the affected area for the repetition. The
+recorded repeat count is passed to the mapping.
+
+If repetition is invoked in normal mode, the repetition works on a new
+selection, depending on the last visual mode:
+- For linewise selections, the repetition selects the current line.
+- For characterwise selections, a new selection starting at the cursor
+  position, with the same size as the last visual selection is used. |1v|
+A [count] is passed to the mapping and overrides the recorded one.
+
 If a non-visual mode mapping is repeated from an active visual selection, it
 won't (can't) apply to the visual selection, but to whatever that mapping
 typically applies. So, you can only repeat previous visual mode mappings on
 a visual selection! The only way around this is to cross-link both mapping
 types, and to use a more intelligent version of the repeat definition in
-visual mode.
+visual mode. This is described next:
 
+CROSS-REPEAT								     *
 Through the |visualrepeat.vim| plugin, it is possible to make normal mode and
 visual mode mappings repeat each other, with the normal mode mapping repeated
 over the visual selection, and the visual mode mapping repeated over a new
-selection starting at the cursor position, with the same size as the last
-visual selection (times [count]).
-For this, use the |repeatableMapping#makeCrossRepeatable()| function, for
-single normal mode and visual mode mappings, and
+selection, such as:
+- For previous linewise selections, the repetition applies to the same amount
+  of lines, unless a different [count] is given. In that case, it selects
+  [count] lines starting at the cursor position.
+- Else, a new selection starting at the cursor position, with the same size as
+  the last visual selection (times [count], if given and different) is used.
+  |1v|
+The mapping itself is always repeated with the recorded [count], not a new
+given one. For cross-repeat of a visual mode mapping in normal mode, a new
+different [count] only affects the range it applies to!
+
+For cross-repeat, use the |repeatableMapping#makeCrossRepeatable()| function,
+for single normal mode and visual mode mappings, and
 |repeatableMapping#makeMultipleCrossRepeatable()| for multiple normal mode and
 a single visual mode mapping.
 
@@ -142,11 +160,17 @@ DEPENDENCIES				      *repeatableMapping-dependencies*
 - Requires Vim 7.0 or higher.
 - repeat.vim (vimscript #2136) plugin (optional, but without it this plugin
   doesn't provide any functionality).
-- visualrepeat.vim (vimscript #3848 plugin) (optional, but recommended for
-  cross-repeat functionality).
+- visualrepeat.vim (vimscript #3848 plugin) (version 2.00 or higher; optional,
+  but recommended for cross-repeat functionality).
 
 ==============================================================================
 LIMITATIONS				       *repeatableMapping-limitations*
+
+- When your mapping uses |:normal| commands or a sequence of Ex commands
+  separated by <CR>:, the original [count] is lost and won't be used in
+  repeats. If you need the count, you cannot use this plugin. Instead,
+  preserve the count yourself at the beginning of the mapping, and implement
+  the calls to |repeat#set()| yourself.
 
 KNOWN PROBLEMS				    *repeatableMapping-known-problems*
 
@@ -157,13 +181,30 @@ IDEAS						     *repeatableMapping-ideas*
 ==============================================================================
 HISTORY						   *repeatableMapping-history*
 
-1.10	RELEASEME
+2.00	RELEASEME
 - ENH: Enable cross-repeat for existing <Plug>-mappings (as provided by
   plugins), too. The new functions parallel to the existing ones are
   repeatableMapping#makePlugMappingCrossRepeatable(),
   repeatableMapping#makeMultipleCrossRepeatable().
+- CHG: In cross-repeat, select [count] lines / times the original selection
+  when [count] is given and different from the repeat count, and pass the
+  original count into the repeated mapping.
+- Rework <Plug>(ReenterVisualMode) for when there's no cross-repeat to handle
+  [count] in a way similar to the changed cross-repeat.
 - FIX: Optional a:defaultCount argument for repeat#set() is only used when
   visualrepeat.vim is not installed.
+- FIX: Also need to drop off <script> from the a:mapCmd to turn it into an
+  effective <Plug> mapping command.
+- ENH: Insert the repeat calls after the last <CR>, even if it is not at the
+  end of the original mapping. This allows preserving the count for those
+  mappings, too.
+- Minor: Consider actual visual map mode of a:visualMapCmd (one of 'v', 'x',
+  or 's').
+- Move the functions for cross-repeating a visual mapping in normal mode
+  through visualrepeat.vim to visualrepeat/reapply.vim to allow re-use in
+  other plugins without forcing a dependency to this plugin. Since this
+  functionality is only ever invoked through an installed visualrepeat.vim, it
+  truly belongs there, not here.
 
 1.00	13-Dec-2011
 First published version.
