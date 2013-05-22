@@ -3,6 +3,7 @@
 " DEPENDENCIES:
 "   - repeat.vim (vimscript #2136) autoload script (optional)
 "   - visualrepeat.vim (vimscript #3848) autoload script (optional)
+"   - visualrepeat/reapply.vim (vimscript #3848) autoload script (optional)
 "
 " Copyright: (C) 2008-2013 Ingo Karkat
 "   The VIM LICENSE applies to this script; see ':help copyright'.
@@ -16,6 +17,14 @@
 "				Rework <Plug>(ReenterVisualMode) for when
 "				there's no cross-repeat to handle [count] in a
 "				way similar to the changed cross-repeat.
+"				Move the functions for cross-repeating a visual
+"				mapping in normal mode through visualrepeat.vim
+"				to visualrepeat/reapply.vim to allow re-use in
+"				other plugins without forcing a dependency to
+"				this plugin. Since this functionality is only
+"				ever invoked through an installed
+"				visualrepeat.vim, it truly belongs there, not
+"				here.
 "   2.00.010	17-Apr-2013	FIX: Optional a:defaultCount argument for
 "				repeat#set() is only used when visualrepeat.vim
 "				is not installed.
@@ -70,48 +79,16 @@
 let s:save_cpo = &cpo
 set cpo&vim
 
-function! repeatableMapping#ReenterVisualMode()
-"****D echomsg '****' v:count g:repeat_count
-    let l:isOnlyRepeatCount = (g:repeat_count == v:count)
-    let l:count = (l:isOnlyRepeatCount ? 1 : v:count1)
-    if ! l:isOnlyRepeatCount && visualmode() ==# 'V'
-	" Select [count] lines, not [count] times the previously selected lines.
-	" It would be more correct to do this for the other selection modes,
-	" too, but it's difficult to multiply their size.
-	return 'V' . (l:count > 1 ? l:count . '_' : '')
-    else
-	" A normal-mode repeat of the visual mapping is triggered by repeat.vim.
-	" It establishes a new selection at the cursor position, of the same
-	" mode and size as the last selection.
-	"   If [count] is given, the size is multiplied accordingly. This has
-	"   the side effect that a repeat with [count] will persist the expanded
-	"   size, which is different from what the normal-mode repeat does (it
-	"   keeps the scope of the original command).
-	return l:count . 'v' . (&selection ==# 'exclusive' ? ' ' : '')
-	" For ':set selection=exclusive', the final character must be
-	" re-included with <Space>, but only if this is not linewise visual
-	" mode; in that case, the <Space> would add the next line in case the
-	" last selected line is empty.
-    endif
+" Support normal mode repeat of visual mode mapping (through only repeat.vim)
+" when visualmode.vim isn't installed.
+function! s:VisualMode()
+    let l:keys = '1v'
+    silent! let l:keys = visualrepeat#reapply#VisualMode(1)
+    return l:keys
 endfunction
-function! s:RecallRepeatCount()
-    return (g:repeat_count ? g:repeat_count : '')
-endfunction
-" Note: We don't need to check for the existence of g:repeat_count here; the
-" normal mode repeat mapping of a visual mode mapping can only be triggered
-" through an installed repeat.vim.
-" Note: The count cannot be injected inside the :normal; it is ignored:
-"nmap <F12> :<C-u>execute 'normal! gv32'<CR>:<C-u>echomsg '****' v:count<CR>
-" What works is prepending via a map-expr:
-"nmap <F12> :<C-u>execute 'normal! gv'<CR>32:<C-u>echomsg '****' v:count<CR>
-" But somehow only when used with : Ex commands, not normal-mode commands; this
-" fails:
-"nmap <F12> :<C-u>execute 'normal! gv'<CR>32A$<Esc>
-" But this works again:
-"nmap <F12> :<C-u>execute 'normal! gv'<CR>32:<C-u>execute 'normal!' v:count . "A$\<lt>Esc>"<CR>
-vnoremap <silent> <expr> <SID>(RecallRepeatCount) <SID>RecallRepeatCount()
+vnoremap <silent> <expr> <SID>(ReapplyRepeatCount) visualrepeat#reapply#RepeatCount()
 
-function! repeatableMapping#ReenterVisualModeWithoutVisualRepeat()
+function! repeatableMapping#ReapplyVisualMode()
     let s:count = v:count
     if visualmode() ==# 'V'
 	" If the command to be repeated was in linewise visual mode, the repeat
@@ -124,10 +101,10 @@ function! repeatableMapping#ReenterVisualModeWithoutVisualRepeat()
 	return '1v' . (&selection ==# 'exclusive' ? ' ' : '')
     endif
 endfunction
-function! s:RecallRepeatCountWithoutVisualRepeat()
+function! s:ReapplyGivenCount()
     return (s:count ? s:count : '')
 endfunction
-vnoremap <silent> <expr> <SID>(RecallRepeatCountWithoutVisualRepeat) <SID>RecallRepeatCountWithoutVisualRepeat()
+vnoremap <silent> <expr> <SID>(ReapplyGivenCount) <SID>ReapplyGivenCount()
 " This gets triggered when repeating visual mode mappings that do not have
 " defined a cross-repeatable normal mode mapping. Instead, through something
 " like a simple :xmap . or the visualrepeat.vim plugin, the original visual mode
@@ -135,16 +112,15 @@ vnoremap <silent> <expr> <SID>(RecallRepeatCountWithoutVisualRepeat) <SID>Recall
 " normal-mode back to visual mode.
 " Use :normal first to swallow the passed [count], so that it doesn't affect the
 " V / gv / 1v commands that are returned by
-" repeatableMapping#ReenterVisualModeWithoutVisualRepeat(). Then put back the
-" [count] via <SID>(RecallRepeatCountWithoutVisualRepeat) so that it applies to
-" the repeated mapping.
+" repeatableMapping#ReapplyVisualMode(). Then put back the [count] via
+" <SID>(ReapplyGivenCount) so that it applies to the repeated mapping.
 " Note that without cross-repeat, a normal mode repeat of the visual mode
 " mapping will work, but always on the current line / same-size selection with
 " the original [count]. This is different from cross-repeat, where one can
 " specify [count] lines / times the original selection, with the original
 " repeat.
 nnoremap <silent> <script> <Plug>(ReenterVisualMode)
-\   :<C-u>execute 'normal!' repeatableMapping#ReenterVisualModeWithoutVisualRepeat()<CR><SID>(RecallRepeatCountWithoutVisualRepeat)
+\   :<C-u>execute 'normal!' repeatableMapping#ReapplyVisualMode()<CR><SID>(ReapplyGivenCount)
 
 
 
@@ -305,8 +281,8 @@ function! repeatableMapping#makeCrossRepeatable( normalMapCmd, normalLhs, normal
     \   l:visualRhsAfter
 
     let l:repeatPlugMapping = a:normalMapCmd . ' <silent> <script> ' . l:visualPlugName . ' ' .
-    \	":<C-u>execute 'normal!' repeatableMapping#ReenterVisualMode()<CR>" .
-    \   '<SID>(RecallRepeatCount)' .
+    \	":<C-u>execute 'normal!' <SID>VisualMode()<CR>" .
+    \   '<SID>(ReapplyRepeatCount)' .
     \	l:visualRhsBefore .
     \	l:visualCmdJoiner .
     \	call('s:RepeatSection', [l:visualPlugName, l:visualPlugName] + a:000) .
@@ -387,8 +363,8 @@ function! repeatableMapping#makePlugMappingCrossRepeatable( normalMapCmd, normal
     \   l:visualRhsAfter
 
     let l:repeatPlugMapping = a:normalMapCmd . ' <silent> <script> ' . a:visualMapName . ' ' .
-    \	":<C-u>execute 'normal!' repeatableMapping#ReenterVisualMode()<CR>" .
-    \   '<SID>(RecallRepeatCount)' .
+    \	":<C-u>execute 'normal!' <SID>VisualMode()<CR>" .
+    \   '<SID>(ReapplyRepeatCount)' .
     \	l:visualRhsBefore .
     \	l:visualCmdJoiner .
     \	call('s:RepeatSection', [a:visualMapName, a:visualMapName] + a:000) .
