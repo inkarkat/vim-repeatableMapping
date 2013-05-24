@@ -11,6 +11,14 @@
 " Maintainer:	Ingo Karkat <ingo@karkat.de>
 "
 " REVISION	DATE		REMARKS
+"   2.00.013	25-May-2013	Make the <Plug> prefix optional for
+"				repeatableMapping#makeRepeatable(),
+"				repeatableMapping#makeCrossRepeatable(),
+"				repeatableMapping#makeMultipleCrossRepeatable().
+"				It is still mandatory for the ...#makePlug...()
+"				functions, but now it can be used in a more
+"				consistent may (always passing <Plug>) without
+"				breaking backwards compatibility.
 "   2.00.012	23-May-2013	FIX: "E121: Undefined variable: SNR, E15:
 "				Invalid expression: 'normal!'
 "				<SNR>141_VisualMode()". Need to use
@@ -170,6 +178,10 @@ function! s:PlugMapCmd( mapCmd )
     return l:plugMapCmd
 endfunction
 
+function! s:PlugMap( mapName )
+    return (a:mapName =~# '^<Plug>' ? a:mapCmd : '<Plug>' . a:mapCmd)
+endfunction
+
 function! repeatableMapping#makeRepeatable( mapCmd, lhs, mapName, ... )
 "******************************************************************************
 "* PURPOSE:
@@ -183,12 +195,13 @@ function! repeatableMapping#makeRepeatable( mapCmd, lhs, mapName, ... )
 "   a:mapCmd	The original mapping command and optional map-arguments used
 "		(like "<buffer>").
 "   a:lhs	The mapping's lhs (i.e. keys that invoke the mapping).
-"   a:mapName	Name of the intermediate <Plug>-mapping that is created.
+"   a:mapName	Name of the intermediate <Plug>-mapping that is created. (The
+"		<Plug> prefix is optional.)
 "   a:defaultCount  Optional default count for repeat#set().
 "* RETURN VALUES:
 "   None.
 "******************************************************************************
-    let l:plugName = '<Plug>' . a:mapName
+    let l:plugName = s:PlugMap(a:mapName)
     call call('s:MakePlugMappingWithRepeat', [a:mapCmd, a:lhs, l:plugName] + a:000)
 
     let l:lhsMapping = s:PlugMapCmd(a:mapCmd)  . ' ' . a:lhs . ' ' . l:plugName
@@ -243,11 +256,13 @@ function! repeatableMapping#makeCrossRepeatable( normalMapCmd, normalLhs, normal
 "			map-arguments used (like "<buffer>").
 "   a:normalLhs		The mapping's lhs (i.e. keys that invoke the mapping).
 "   a:normalMapName	Name of the intermediate <Plug>-mapping that is created.
+"			(The <Plug> prefix is optional.)
 "			This must be different from the a:visualMapName;
 "			typically the normal mode name contains the scope, e.g.
 "			"Line" or "Word".
 "   a:visualMapCmd	The original visual mode mapping command and optional
 "			map-arguments used (like "<buffer>").
+"			(The <Plug> prefix is optional.)
 "   a:visualLhs		The mapping's lhs (i.e. keys that invoke the mapping).
 "   a:visualMapName	Name of the intermediate <Plug>-mapping that is created.
 "			This must be different from the a:normalMapName;
@@ -270,8 +285,8 @@ function! repeatableMapping#makeCrossRepeatable( normalMapCmd, normalLhs, normal
 	return
     endif
 
-    let l:normalPlugName = '<Plug>' . a:normalMapName
-    let l:visualPlugName = '<Plug>' . a:visualMapName
+    let l:normalPlugName = s:PlugMap(a:normalMapName)
+    let l:visualPlugName = s:PlugMap(a:visualMapName)
 
     let [l:normalRhsBefore, l:normalCmdJoiner, l:normalRhsAfter] = s:GetRhsAndCmdJoiner(a:normalLhs, 'n')
     let [l:visualRhsBefore, l:visualCmdJoiner, l:visualRhsAfter] = s:GetRhsAndCmdJoiner(a:visualLhs, a:visualMapCmd[0])
@@ -413,12 +428,14 @@ function! repeatableMapping#makeMultipleCrossRepeatable( normalDefs, visualMapCm
 "			This must be different from the a:visualMapName;
 "			typically the normal mode name contains the scope, e.g.
 "			"Line" or "Word".
+"			(The <Plug> prefix is optional.)
 "   a:visualMapCmd	The original visual mode mapping command and optional
 "			map-arguments used (like "<buffer>").
 "   a:visualLhs		The mapping's lhs (i.e. keys that invoke the mapping).
 "   a:visualMapName	Name of the intermediate <Plug>-mapping that is created.
 "			This must be different from the a:normalMapName;
 "			typically the visual mode name contains "Selection".
+"			(The <Plug> prefix is optional.)
 "   a:defaultCount  Optional default count for repeat#set().
 "* RETURN VALUES:
 "   None.
