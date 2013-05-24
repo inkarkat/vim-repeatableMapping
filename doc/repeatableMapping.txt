@@ -96,16 +96,20 @@ and insert the call to repeat#set() at the end. >
     silent! call repeatableMapping#makeRepeatable('nnoremap', '<Leader>v', 'ShowVersion')
 >
 The processing requires the following information:
-- The original mapping command (for the map-mode, whether "noremap" or not,
+- The original mapping command (for the map-mode, whether |:noremap| or not,
   any optional map-arguments like "<buffer>"; "<silent>" is added
   automatically to avoid showing the repeat invocation).
-- The mapping's lhs (i.e. keys that invoke the mapping).
+- The mapping's {lhs} (i.e. keys that invoke the mapping).
 - A unique name for the intermediate <Plug>-mapping that needs to be created
   so that repeat.vim can invoke it.
 - Optional: The default count that will be prefixed to the mapping if no
   explicit numeric argument was given; i.e. the second optional argument of
   repeat#set(). If your mapping doesn't accept a numeric argument and you
   never want to receive one, pass a value of -1.
+Note that the wrapped Ex command in the mapping must support command
+sequencing with | (i.e. custom commands must be defined with |:command-bar|),
+as the repeat insertion will be appended with <Bar>. If that is not the case,
+wrap the command in |:execute|.
 
 If you already have a <Plug> mapping: >
     vnoremap <silent> <Plug>ShowVersion :<C-U>version<CR>
