@@ -167,7 +167,7 @@ function! s:MakePlugMappingWithRepeat( mapCmd, lhs, plugName, ... )
     \	'"' . (a:0 ? ', ' . a:1 : '') .
     \	')<CR>' .
     \   l:rhsAfter
-"****D echomsg l:plugMapping
+"****D unsilent echomsg l:plugMapping string(a:mapCmd) string(a:lhs) string(a:plugName)
     execute l:plugMapping
 endfunction
 
@@ -177,9 +177,8 @@ function! s:PlugMapCmd( mapCmd )
     let l:plugMapCmd = substitute(l:plugMapCmd, '<script>', '', '')
     return l:plugMapCmd
 endfunction
-
 function! s:PlugMap( mapName )
-    return (a:mapName =~# '^<Plug>' ? a:mapCmd : '<Plug>' . a:mapCmd)
+    return (a:mapName =~# '^<Plug>' ? a:mapName : '<Plug>' . a:mapName)
 endfunction
 
 function! repeatableMapping#makeRepeatable( mapCmd, lhs, mapName, ... )
@@ -205,7 +204,7 @@ function! repeatableMapping#makeRepeatable( mapCmd, lhs, mapName, ... )
     call call('s:MakePlugMappingWithRepeat', [a:mapCmd, a:lhs, l:plugName] + a:000)
 
     let l:lhsMapping = s:PlugMapCmd(a:mapCmd)  . ' ' . a:lhs . ' ' . l:plugName
-"****D echomsg l:lhsMapping
+"****D unsilent echomsg l:lhsMapping
     execute l:lhsMapping
 endfunction
 
@@ -325,11 +324,11 @@ function! repeatableMapping#makeCrossRepeatable( normalMapCmd, normalLhs, normal
     if ! empty(a:visualMapCmd) | execute l:visualLhsMapping | endif
 
     return
-echomsg '****' l:normalPlugMapping
-echomsg '****' l:visualPlugMapping
-echomsg '****' l:repeatPlugMapping
-echomsg '****' l:normalLhsMapping
-echomsg '****' l:visualLhsMapping
+unsilent echomsg '****' l:normalPlugMapping
+unsilent echomsg '****' l:visualPlugMapping
+unsilent echomsg '****' l:repeatPlugMapping
+unsilent echomsg '****' l:normalLhsMapping
+unsilent echomsg '****' l:visualLhsMapping
 endfunction
 function! s:MakePlugMappingCrossRepeatable( normalMapCmd, normalMapName, normalRepeatMapName, visualMapCmd, visualMapName, visualRepeatMapName, ... )
     if a:normalMapName ==# a:visualMapName | throw 'ASSERT: normalMapName and visualMapName must be different' | endif
@@ -378,9 +377,9 @@ function! s:MakePlugMappingCrossRepeatable( normalMapCmd, normalMapName, normalR
     endif
 
     return
-echomsg '****' l:normalPlugMapping
-echomsg '****' l:visualPlugMapping
-echomsg '****' l:repeatPlugMapping
+unsilent echomsg '****' l:normalPlugMapping
+unsilent echomsg '****' l:visualPlugMapping
+unsilent echomsg '****' l:repeatPlugMapping
 endfunction
 function! repeatableMapping#makePlugMappingCrossRepeatable( normalMapCmd, normalMapName, visualMapCmd, visualMapName, ... )
 "******************************************************************************
