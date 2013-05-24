@@ -11,6 +11,15 @@
 " Maintainer:	Ingo Karkat <ingo@karkat.de>
 "
 " REVISION	DATE		REMARKS
+"   2.00.012	23-May-2013	FIX: "E121: Undefined variable: SNR, E15:
+"				Invalid expression: 'normal!'
+"				<SNR>141_VisualMode()". Need to use
+"				concatenation to avoid that error.
+"				Make repeatableMapping#ReapplyVisualMode()
+"				script-local and apply the above fix there, too.
+"				I see no reason why this function should be
+"				exposed, as it only works together with
+"				<SID>(ReapplyGivenCount).
 "   2.00.011	18-Apr-2013	Also need to drop off <script> from the a:mapCmd
 "				to turn it into an effective <Plug> mapping
 "				command.
@@ -88,7 +97,7 @@ function! s:VisualMode()
 endfunction
 vnoremap <silent> <expr> <SID>(ReapplyRepeatCount) visualrepeat#reapply#RepeatCount()
 
-function! repeatableMapping#ReapplyVisualMode()
+function! s:ReapplyVisualMode()
     let s:count = v:count
     if visualmode() ==# 'V'
 	" If the command to be repeated was in linewise visual mode, the repeat
@@ -112,15 +121,14 @@ vnoremap <silent> <expr> <SID>(ReapplyGivenCount) <SID>ReapplyGivenCount()
 " normal-mode back to visual mode.
 " Use :normal first to swallow the passed [count], so that it doesn't affect the
 " V / gv / 1v commands that are returned by
-" repeatableMapping#ReapplyVisualMode(). Then put back the [count] via
-" <SID>(ReapplyGivenCount) so that it applies to the repeated mapping.
-" Note that without cross-repeat, a normal mode repeat of the visual mode
-" mapping will work, but always on the current line / same-size selection with
-" the original [count]. This is different from cross-repeat, where one can
-" specify [count] lines / times the original selection, with the original
-" repeat.
+" s:ReapplyVisualMode(). Then put back the [count] via <SID>(ReapplyGivenCount)
+" so that it applies to the repeated mapping. Note that without cross-repeat, a
+" normal mode repeat of the visual mode mapping will work, but always on the
+" current line / same-size selection with the original [count]. This is
+" different from cross-repeat, where one can specify [count] lines / times the
+" original selection, with the original repeat.
 nnoremap <silent> <script> <Plug>(ReenterVisualMode)
-\   :<C-u>execute 'normal!' repeatableMapping#ReapplyVisualMode()<CR><SID>(ReapplyGivenCount)
+\   :<C-u>execute 'normal! ' . <SID>ReapplyVisualMode()<CR><SID>(ReapplyGivenCount)
 
 
 
@@ -281,7 +289,7 @@ function! repeatableMapping#makeCrossRepeatable( normalMapCmd, normalLhs, normal
     \   l:visualRhsAfter
 
     let l:repeatPlugMapping = a:normalMapCmd . ' <silent> <script> ' . l:visualPlugName . ' ' .
-    \	":<C-u>execute 'normal!' <SID>VisualMode()<CR>" .
+    \	":<C-u>execute 'normal! ' . <SID>VisualMode()<CR>" .
     \   '<SID>(ReapplyRepeatCount)' .
     \	l:visualRhsBefore .
     \	l:visualCmdJoiner .
@@ -363,7 +371,7 @@ function! repeatableMapping#makePlugMappingCrossRepeatable( normalMapCmd, normal
     \   l:visualRhsAfter
 
     let l:repeatPlugMapping = a:normalMapCmd . ' <silent> <script> ' . a:visualMapName . ' ' .
-    \	":<C-u>execute 'normal!' <SID>VisualMode()<CR>" .
+    \	":<C-u>execute 'normal! ' . <SID>VisualMode()<CR>" .
     \   '<SID>(ReapplyRepeatCount)' .
     \	l:visualRhsBefore .
     \	l:visualCmdJoiner .
