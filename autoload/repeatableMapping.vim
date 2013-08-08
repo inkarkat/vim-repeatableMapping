@@ -11,6 +11,8 @@
 " Maintainer:	Ingo Karkat <ingo@karkat.de>
 "
 " REVISION	DATE		REMARKS
+"   2.00.014	14-Jun-2013	Minor: Make substitute() robust against
+"				'ignorecase'.
 "   2.00.013	25-May-2013	Make the <Plug> prefix optional for
 "				repeatableMapping#makeRepeatable(),
 "				repeatableMapping#makeCrossRepeatable(),
@@ -177,8 +179,8 @@ endfunction
 
 function! s:PlugMapCmd( mapCmd )
     let l:plugMapCmd = a:mapCmd
-    let l:plugMapCmd = substitute(l:plugMapCmd, 'noremap', 'map', '')
-    let l:plugMapCmd = substitute(l:plugMapCmd, '<script>', '', '')
+    let l:plugMapCmd = substitute(l:plugMapCmd, '\Cnoremap', 'map', '')
+    let l:plugMapCmd = substitute(l:plugMapCmd, '\C<script>', '', '')
     return l:plugMapCmd
 endfunction
 function! s:PlugMap( mapName )
