@@ -84,7 +84,25 @@ For cross-repeat, use the |repeatableMapping#makeCrossRepeatable()| function,
 for single normal mode and visual mode mappings, and
 |repeatableMapping#makeMultipleCrossRepeatable()| for multiple normal mode and
 a single visual mode mapping.
+For existing <Plug>-mappings, there's the
+|repeatableMapping#makeMultiplePlugMappingCrossRepeatable()| function.
 
+If the repeat needs to go to a different <Plug>-mapping (for example when you
+have a mapping that queries the user, and you want to avoid the query on
+repeat through a non-interactive mapping variant that recalls the saved
+original query's value), use the
+|repeatableMapping#makePlugMappingWithDifferentRepeatCrossRepeatable()|
+function. With this variant of |repeatableMapping#makeCrossRepeatable()|, you
+can specify separate repeat <Plug>-mappings: >
+    silent! call repeatableMapping#makePlugMappingWithDifferentRepeatCrossRepeatable(
+    \   'nnoremap', '<Plug>(FooRange)',           '<Plug>(FooRangeRepeat)',
+    \   'xnoremap', '<Plug>(FooSelection)',       '<Plug>(FooSelectionRepeat)'
+    \)
+    silent! call repeatableMapping#makePlugMappingWithDifferentRepeatCrossRepeatable(
+    \   'nnoremap', '<Plug>(FooRangeRepeat)',     '<Plug>(FooRangeRepeat)',
+    \   'xnoremap', '<Plug>(FooSelectionRepeat)', '<Plug>(FooSelectionRepeat)'
+    \)
+<
 ==============================================================================
 USAGE						     *repeatableMapping-usage*
 
@@ -139,8 +157,8 @@ mapping can be repeated over a visual selection and vice versa: >
 Again, if you already have <Plug> mappings (and need them for a configurable
 plugin), you can use the alternative function: >
     silent! call repeatableMapping#makePlugMappingCrossRepeatable(
-    \   'nnoremap <buffer>', 'QuoteLine',
-    \   'vnoremap <buffer>', 'QuoteSelection'
+    \   'nnoremap <buffer>', '<Plug>QuoteLine',
+    \   'vnoremap <buffer>', '<Plug>QuoteSelection'
     \)
 Note that you need to do this _after_ any >
     if ! hasmapto('<Plug>QuoteLine', 'n') ...
@@ -209,6 +227,12 @@ HISTORY						   *repeatableMapping-history*
   other plugins without forcing a dependency to this plugin. Since this
   functionality is only ever invoked through an installed visualrepeat.vim, it
   truly belongs there, not here.
+- Make the <Plug> prefix optional for repeatableMapping#makeRepeatable(),
+  repeatableMapping#makeCrossRepeatable(),
+  repeatableMapping#makeMultipleCrossRepeatable().
+- ENH: Also allow cross-repeat for existing <Plug>-mappings that need to call
+  a different repeat <Plug>-mapping via
+  repeatableMapping#makePlugMappingWithDifferentRepeatCrossRepeatable().
 
 1.00	13-Dec-2011
 First published version.
