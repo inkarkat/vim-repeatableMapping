@@ -6,12 +6,17 @@
 "   - visualrepeat/reapply.vim (vimscript #3848) autoload script (optional)
 "   - ingo/compat.vim autoload script (optional)
 "
-" Copyright: (C) 2008-2013 Ingo Karkat
+" Copyright: (C) 2008-2014 Ingo Karkat
 "   The VIM LICENSE applies to this script; see ':help copyright'.
 "
 " Maintainer:	Ingo Karkat <ingo@karkat.de>
 "
 " REVISION	DATE		REMARKS
+"   2.01.016	19-Nov-2014	BUG: Typo in
+"				repeatableMapping#makePlugMappingCrossRepeatable()
+"				causes "E116: Invalid arguments for function
+"				call", which unfortunately usually is suppressed
+"				by the :silent! invocation.
 "   2.00.015	09-Aug-2013	Use ingo#compat#maparg() when available.
 "   2.00.014	14-Jun-2013	Minor: Make substitute() robust against
 "				'ignorecase'.
@@ -453,7 +458,7 @@ function! repeatableMapping#makePlugMappingCrossRepeatable( normalMapCmd, normal
 "* RETURN VALUES:
 "   None.
 "******************************************************************************
-    call call('repeatableMapping#makePlugMappingWithDifferentRepeatCrossRepeatable', [a:normalMapCmd, a:normalMapName, a:normalMapName, a:visualMapCmd, a:visualMapName, a:visualMapName] + a:000])
+    call call('repeatableMapping#makePlugMappingWithDifferentRepeatCrossRepeatable', [a:normalMapCmd, a:normalMapName, a:normalMapName, a:visualMapCmd, a:visualMapName, a:visualMapName] + a:000)
 endfunction
 
 function! repeatableMapping#makeMultipleCrossRepeatable( normalDefs, visualMapCmd, visualLhs, visualMapName, ... )
