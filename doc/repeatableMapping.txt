@@ -203,7 +203,7 @@ IDEAS						     *repeatableMapping-ideas*
 ==============================================================================
 HISTORY						   *repeatableMapping-history*
 
-2.00	RELEASEME
+2.00	22-Nov-2013
 - ENH: Enable cross-repeat for existing <Plug>-mappings (as provided by
   plugins), too. The new functions parallel to the existing ones are
   repeatableMapping#makePlugMappingCrossRepeatable(),
@@ -234,8 +234,8 @@ HISTORY						   *repeatableMapping-history*
   a different repeat <Plug>-mapping via
   repeatableMapping#makePlugMappingWithDifferentRepeatCrossRepeatable().
 
-1.00	13-Dec-2011
-First published version.
+1.00	13-Dec-2011 (unreleased)
+First version.
 
 0.01	24-Sep-2008
 Started development.
