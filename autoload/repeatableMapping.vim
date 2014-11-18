@@ -4,6 +4,7 @@
 "   - repeat.vim (vimscript #2136) autoload script (optional)
 "   - visualrepeat.vim (vimscript #3848) autoload script (optional)
 "   - visualrepeat/reapply.vim (vimscript #3848) autoload script (optional)
+"   - ingo/compat.vim autoload script (optional)
 "
 " Copyright: (C) 2008-2013 Ingo Karkat
 "   The VIM LICENSE applies to this script; see ':help copyright'.
@@ -11,6 +12,7 @@
 " Maintainer:	Ingo Karkat <ingo@karkat.de>
 "
 " REVISION	DATE		REMARKS
+"   2.00.015	09-Aug-2013	Use ingo#compat#maparg() when available.
 "   2.00.014	14-Jun-2013	Minor: Make substitute() robust against
 "				'ignorecase'.
 "   2.00.013	25-May-2013	Make the <Plug> prefix optional for
@@ -147,8 +149,12 @@ nnoremap <silent> <script> <Plug>(ReenterVisualMode)
 
 
 function! s:GetRhsAndCmdJoiner( lhs, mapMode )
-    let l:rhs = maparg(a:lhs, a:mapMode)
-    let l:rhs = substitute(l:rhs, '|', '<Bar>', 'g')	" '|' must be escaped, or the map command will end prematurely.
+    if exists('*ingo#compat#maparg')    " Avoid hard dependency to ingo-library.
+	let l:rhs = ingo#compat#maparg(a:lhs, a:mapMode)
+    else
+	let l:rhs = maparg(a:lhs, a:mapMode)
+	let l:rhs = substitute(l:rhs, '|', '<Bar>', 'g')	" '|' must be escaped, or the map command will end prematurely.
+    endif
     if l:rhs =~? ':.*<CR>'
 	let [l:rhsBefore, l:rhsAfter] = matchlist(l:rhs, '^\(.*\)\c<CR>\(.*\)$')[1:2]
 	let l:cmdJoiner = '<Bar>'
