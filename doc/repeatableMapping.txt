@@ -203,7 +203,7 @@ IDEAS						     *repeatableMapping-ideas*
 ==============================================================================
 HISTORY						   *repeatableMapping-history*
 
-2.10	RELEASEME
+2.10	08-Mar-2015
 - ENH: Allow to pass Funcref as a:defaultCount; the value will then be
   determined via a dynamic lookup. This is necessary for mappings that clobber
   v:count (e.g. due to use of :normal). They can now save the original count
@@ -253,7 +253,7 @@ First version.
 Started development.
 
 ==============================================================================
-Copyright: (C) 2008-2014 Ingo Karkat
+Copyright: (C) 2008-2015 Ingo Karkat
 The VIM LICENSE applies to this plugin; see |copyright|.
 
 Maintainer:	Ingo Karkat <ingo@karkat.de>
