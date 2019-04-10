@@ -12,6 +12,13 @@
 " Maintainer:	Ingo Karkat <ingo@karkat.de>
 "
 " REVISION	DATE		REMARKS
+"   2.10.017	19-Nov-2014	ENH: Allow to pass Funcref as a:defaultCount;
+"				the value will then be determined via a dynamic
+"				lookup. This is necessary for mappings that
+"				clobber v:count (e.g. due to use of :normal).
+"				They can now save the original count and pass it
+"				on to the repeat part via the Funcref, which is
+"				more elegant than a global variable.
 "   2.01.016	19-Nov-2014	BUG: Typo in
 "				repeatableMapping#makePlugMappingCrossRepeatable()
 "				causes "E116: Invalid arguments for function
@@ -181,7 +188,7 @@ function! s:MakePlugMappingWithRepeat( mapCmd, lhs, plugName, ... )
     \	l:cmdJoiner . 'silent! call repeat#set("' .
     \	(l:mapMode =~# '^[vxs]$' ? '\<Plug>(ReenterVisualMode)' : '') .
     \	'\' . a:plugName .
-    \	'"' . (a:0 ? ', ' . a:1 : '') .
+    \	'"' . (a:0 ? ', ' . s:RenderCount(a:1) : '') .
     \	')<CR>' .
     \   l:rhsAfter
 "****D unsilent echomsg l:plugMapping string(a:mapCmd) string(a:lhs) string(a:plugName)
@@ -214,6 +221,8 @@ function! repeatableMapping#makeRepeatable( mapCmd, lhs, mapName, ... )
 "   a:mapName	Name of the intermediate <Plug>-mapping that is created. (The
 "		<Plug> prefix is optional.)
 "   a:defaultCount  Optional default count for repeat#set().
+"		    Can be a Funcref which is then invoked dynamically (without
+"		    any arguments) to get the saved original v:count.
 "* RETURN VALUES:
 "   None.
 "******************************************************************************
@@ -248,12 +257,17 @@ function! s:RepeatSection( normalRepeatPlug, visualRepeatPlug, ... )
     return
     \	'silent! call repeat#set("' .
     \	'\' . a:normalRepeatPlug .
-    \	'"' . (a:0 ? ', ' . a:1 : '') .
+    \	'"' . (a:0 ? ', ' . s:RenderCount(a:1) : '') .
     \	')<Bar>silent! call visualrepeat#set("' .
     \	'\' . a:visualRepeatPlug .
-    \	'"' . (a:0 ? ', ' . a:1 : '') .
+    \	'"' . (a:0 ? ', ' . s:RenderCount(a:1) : '') .
     \	')<CR>'
-
+endfunction
+function! s:RenderCount( Count )
+    return (type(a:Count) == type(function('tr')) ?
+    \   printf('call(%s, [])', string(a:Count)):
+    \   a:Count
+    \)
 endfunction
 
 function! repeatableMapping#makeCrossRepeatable( normalMapCmd, normalLhs, normalMapName, visualMapCmd, visualLhs, visualMapName, ... )
@@ -283,7 +297,7 @@ function! repeatableMapping#makeCrossRepeatable( normalMapCmd, normalLhs, normal
 "   a:visualMapName	Name of the intermediate <Plug>-mapping that is created.
 "			This must be different from the a:normalMapName;
 "			typically the visual mode name contains "Selection".
-"   a:defaultCount  Optional default count for repeat#set().
+"   a:defaultCount      Optional default count for repeat#set().
 "* RETURN VALUES:
 "   None.
 "******************************************************************************
@@ -454,7 +468,7 @@ function! repeatableMapping#makePlugMappingCrossRepeatable( normalMapCmd, normal
 "   a:visualMapName	Name of the <Plug>-mapping to be made repeatable.
 "			This must be different from the a:normalMapName;
 "			typically the visual mode name contains "Selection".
-"   a:defaultCount  Optional default count for repeat#set().
+"   a:defaultCount      Optional default count for repeat#set().
 "* RETURN VALUES:
 "   None.
 "******************************************************************************
@@ -490,7 +504,7 @@ function! repeatableMapping#makeMultipleCrossRepeatable( normalDefs, visualMapCm
 "			This must be different from the a:normalMapName;
 "			typically the visual mode name contains "Selection".
 "			(The <Plug> prefix is optional.)
-"   a:defaultCount  Optional default count for repeat#set().
+"   a:defaultCount      Optional default count for repeat#set().
 "* RETURN VALUES:
 "   None.
 "******************************************************************************
@@ -531,7 +545,7 @@ function! repeatableMapping#makeMultiplePlugMappingCrossRepeatable( normalDefs, 
 "   a:visualMapName	Name of the <Plug>-mapping to be made repeatable.
 "			This must be different from the a:normalMapName;
 "			typically the visual mode name contains "Selection".
-"   a:defaultCount  Optional default count for repeat#set().
+"   a:defaultCount      Optional default count for repeat#set().
 "* RETURN VALUES:
 "   None.
 "******************************************************************************
