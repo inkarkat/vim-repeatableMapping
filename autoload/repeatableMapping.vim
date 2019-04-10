@@ -6,7 +6,7 @@
 "   - visualrepeat/reapply.vim (vimscript #3848) autoload script (optional)
 "   - ingo/compat.vim autoload script (optional)
 "
-" Copyright: (C) 2008-2014 Ingo Karkat
+" Copyright: (C) 2008-2019 Ingo Karkat
 "   The VIM LICENSE applies to this script; see ':help copyright'.
 "
 " Maintainer:	Ingo Karkat <ingo@karkat.de>
@@ -216,7 +216,7 @@ function! repeatableMapping#makeRepeatable( mapCmd, lhs, mapName, ... )
 "   Modifies the original a:lhs mapping to use the <Plug>-mapping.
 "* INPUTS:
 "   a:mapCmd	The original mapping command and optional map-arguments used
-"		(like "<buffer>").
+"		(like "<buffer>"; but <silent> is added implicitly).
 "   a:lhs	The mapping's lhs (i.e. keys that invoke the mapping).
 "   a:mapName	Name of the intermediate <Plug>-mapping that is created. (The
 "		<Plug> prefix is optional.)
@@ -244,7 +244,7 @@ function! repeatableMapping#makePlugMappingRepeatable( mapCmd, mapName, ... )
 "   Redefines the a:mapName <Plug>-mapping.
 "* INPUTS:
 "   a:mapCmd	The original mapping command and optional map-arguments used
-"		(like "<buffer>").
+"		(like "<buffer>"; but <silent> is added implicitly).
 "   a:mapName	Name of the <Plug>-mapping to be made repeatable.
 "   a:defaultCount  Optional default count for repeat#set().
 "* RETURN VALUES:
@@ -283,7 +283,8 @@ function! repeatableMapping#makeCrossRepeatable( normalMapCmd, normalLhs, normal
 "   corresponding <Plug>-mappings.
 "* INPUTS:
 "   a:normalMapCmd	The original normal mode mapping command and optional
-"			map-arguments used (like "<buffer>").
+"			map-arguments used (like "<buffer>"; but <silent> is
+"			added implicitly).
 "   a:normalLhs		The mapping's lhs (i.e. keys that invoke the mapping).
 "   a:normalMapName	Name of the intermediate <Plug>-mapping that is created.
 "			(The <Plug> prefix is optional.)
@@ -291,7 +292,8 @@ function! repeatableMapping#makeCrossRepeatable( normalMapCmd, normalLhs, normal
 "			typically the normal mode name contains the scope, e.g.
 "			"Line" or "Word".
 "   a:visualMapCmd	The original visual mode mapping command and optional
-"			map-arguments used (like "<buffer>").
+"			map-arguments used (like "<buffer>"; but <silent> is
+"			added implicitly).
 "			(The <Plug> prefix is optional.)
 "   a:visualLhs		The mapping's lhs (i.e. keys that invoke the mapping).
 "   a:visualMapName	Name of the intermediate <Plug>-mapping that is created.
@@ -377,7 +379,8 @@ function! repeatableMapping#makePlugMappingWithDifferentRepeatCrossRepeatable( n
 "   Redefines the original a:normalMapName and a:visualMapName mappings.
 "* INPUTS:
 "   a:normalMapCmd	    The original normal mode mapping command and
-"			    optional map-arguments used (like "<buffer>").
+"			    optional map-arguments used (like "<buffer>"; but
+"			    <silent> is added implicitly).
 "   a:normalMapName	    Name of the <Plug>-mapping to be made repeatable.
 "			    This must be different from the a:visualMapName;
 "			    typically the normal mode name contains the scope,
@@ -386,7 +389,8 @@ function! repeatableMapping#makePlugMappingWithDifferentRepeatCrossRepeatable( n
 "			    repeat. Typically like a:normalMapName with appended
 "			    "Repeat".
 "   a:visualMapCmd	    The original visual mode mapping command and
-"			    optional map-arguments used (like "<buffer>").
+"			    optional map-arguments used (like "<buffer>"; but
+"			    <silent> is added implicitly).
 "   a:visualMapName	    Name of the <Plug>-mapping to be made repeatable.
 "			    This must be different from the a:normalMapName;
 "			    typically the visual mode name contains "Selection".
@@ -458,13 +462,15 @@ function! repeatableMapping#makePlugMappingCrossRepeatable( normalMapCmd, normal
 "   Redefines the original a:normalMapName and a:visualMapName mappings.
 "* INPUTS:
 "   a:normalMapCmd	The original normal mode mapping command and optional
-"			map-arguments used (like "<buffer>").
+"			map-arguments used (like "<buffer>"; but <silent> is
+"			added implicitly).
 "   a:normalMapName	Name of the <Plug>-mapping to be made repeatable.
 "			This must be different from the a:visualMapName;
 "			typically the normal mode name contains the scope, e.g.
 "			"Line" or "Word".
 "   a:visualMapCmd	The original visual mode mapping command and optional
-"			map-arguments used (like "<buffer>").
+"			map-arguments used (like "<buffer>"; but <silent> is
+"			added implicitly).
 "   a:visualMapName	Name of the <Plug>-mapping to be made repeatable.
 "			This must be different from the a:normalMapName;
 "			typically the visual mode name contains "Selection".
@@ -490,7 +496,8 @@ function! repeatableMapping#makeMultipleCrossRepeatable( normalDefs, visualMapCm
 "   a:normalDefs	List of normal mode mapping definitions, which are
 "			tuples of [a:normalMapCmd, a:normalLhs, a:normalMapName]
 "	a:normalMapCmd	The original normal mode mapping command and optional
-"			map-arguments used (like "<buffer>").
+"			map-arguments used (like "<buffer>"; but <silent> is
+"			added implicitly).
 "	a:normalLhs	The mapping's lhs (i.e. keys that invoke the mapping).
 "	a:normalMapName	Name of the intermediate <Plug>-mapping that is created.
 "			This must be different from the a:visualMapName;
@@ -498,7 +505,8 @@ function! repeatableMapping#makeMultipleCrossRepeatable( normalDefs, visualMapCm
 "			"Line" or "Word".
 "			(The <Plug> prefix is optional.)
 "   a:visualMapCmd	The original visual mode mapping command and optional
-"			map-arguments used (like "<buffer>").
+"			map-arguments used (like "<buffer>"; but <silent> is
+"			added implicitly).
 "   a:visualLhs		The mapping's lhs (i.e. keys that invoke the mapping).
 "   a:visualMapName	Name of the intermediate <Plug>-mapping that is created.
 "			This must be different from the a:normalMapName;
@@ -535,13 +543,15 @@ function! repeatableMapping#makeMultiplePlugMappingCrossRepeatable( normalDefs, 
 "   a:normalDefs	List of normal mode mapping definitions, which are
 "			tuples of [a:normalMapCmd, a:normalMapName]
 "	a:normalMapCmd	The original normal mode mapping command and optional
-"			map-arguments used (like "<buffer>").
+"			map-arguments used (like "<buffer>"; but <silent> is
+"			added implicitly).
 "	a:normalMapName	Name of the <Plug>-mapping to be made repeatable.
 "			This must be different from the a:visualMapName;
 "			typically the normal mode name contains the scope, e.g.
 "			"Line" or "Word".
 "   a:visualMapCmd	The original visual mode mapping command and optional
-"			map-arguments used (like "<buffer>").
+"			map-arguments used (like "<buffer>"; but <silent> is
+"			added implicitly).
 "   a:visualMapName	Name of the <Plug>-mapping to be made repeatable.
 "			This must be different from the a:normalMapName;
 "			typically the visual mode name contains "Selection".
