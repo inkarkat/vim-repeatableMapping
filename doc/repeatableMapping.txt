@@ -203,7 +203,15 @@ IDEAS						     *repeatableMapping-ideas*
 ==============================================================================
 HISTORY						   *repeatableMapping-history*
 
-2.11	RELEASEME
+2.20	RELEASEME
+- ENH: All functions now support a second optional a:isRepeatRegister argument
+  (to skip specifying a a:defaultCount, pass an empty String as the first
+  optional argument) that if set invokes repeat#setreg() before the original
+  {rhs} and also tweaks the repeat mappings that recreate a visual selection
+  (which clobber count and also register) to save and restore the repeated
+  register for the repeat as well.
+
+2.11	25-Jul-2019
 - Documentation: Mention that a <silent> map-argument does not need to be
   passed; I was confused about this myself.
 - FIX: The ingo-library may not be loaded yet (as repeatable mappings are
