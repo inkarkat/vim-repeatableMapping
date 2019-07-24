@@ -180,6 +180,10 @@ function! s:GetRegister() abort
 endfunction
 nnoremap <silent> <expr> <SID>(CaptureRegister) <SID>CaptureRegister()
 vnoremap <silent> <expr> <SID>(CaptureRegister) <SID>CaptureRegister()
+function! s:ReapplyRegister() abort
+    return (s:register ==# '"' ? '' : '"' . s:register)
+endfunction
+vnoremap <silent> <expr> <SID>(ReapplyRegister) <SID>ReapplyRegister()
 
 
 silent! call ingo#compat#maparg('') " Try loading the ingo-library autoload script before testing for its existence.
@@ -246,9 +250,12 @@ function! repeatableMapping#makeRepeatable( mapCmd, lhs, mapName, ... )
 "   a:lhs	The mapping's lhs (i.e. keys that invoke the mapping).
 "   a:mapName	Name of the intermediate <Plug>-mapping that is created. (The
 "		<Plug> prefix is optional.)
-"   a:defaultCount  Optional default count for repeat#set().
-"		    Can be a Funcref which is then invoked dynamically (without
-"		    any arguments) to get the saved original v:count.
+"   a:defaultCount  Optional default count for repeat#set(). Pass '' (empty
+"                   String) to omit. Can be a Funcref which is then invoked
+"                   dynamically (without any arguments) to get the saved
+"                   original v:count.
+"   a:isRepeatRegister      Flag. If 1, the register is also stored and repeated
+"			    (via repeat#setreg()).
 "* RETURN VALUES:
 "   None.
 "******************************************************************************
@@ -272,7 +279,10 @@ function! repeatableMapping#makePlugMappingRepeatable( mapCmd, mapName, ... )
 "   a:mapCmd	The original mapping command and optional map-arguments used
 "		(like "<buffer>"; but <silent> is added implicitly).
 "   a:mapName	Name of the <Plug>-mapping to be made repeatable.
-"   a:defaultCount  Optional default count for repeat#set().
+"   a:defaultCount  Optional default count for repeat#set(). Pass '' (empty
+"                   String) to omit. Can be a Funcref which is then invoked
+"                   dynamically (without any arguments) to get the saved
+"                   original v:count.
 "* RETURN VALUES:
 "   None.
 "******************************************************************************
@@ -331,7 +341,10 @@ function! repeatableMapping#makeCrossRepeatable( normalMapCmd, normalLhs, normal
 "   a:visualMapName	Name of the intermediate <Plug>-mapping that is created.
 "			This must be different from the a:normalMapName;
 "			typically the visual mode name contains "Selection".
-"   a:defaultCount      Optional default count for repeat#set().
+"   a:defaultCount  Optional default count for repeat#set(). Pass '' (empty
+"                   String) to omit. Can be a Funcref which is then invoked
+"                   dynamically (without any arguments) to get the saved
+"                   original v:count.
 "* RETURN VALUES:
 "   None.
 "******************************************************************************
@@ -429,8 +442,10 @@ function! repeatableMapping#makePlugMappingWithDifferentRepeatCrossRepeatable( n
 "   a:visualRepeatMapName   Name of the <Plug>-mapping that is invoked on
 "			    repeat. Typically like a:visualMapName with appended
 "			    "repeat".
-"   a:defaultCount          Optional default count for repeat#set(). Pass ''
-"			    (empty String) to omit.
+"   a:defaultCount  Optional default count for repeat#set(). Pass '' (empty
+"                   String) to omit. Can be a Funcref which is then invoked
+"                   dynamically (without any arguments) to get the saved
+"                   original v:count.
 "   a:isRepeatRegister      Flag. If 1, the register is also stored and repeated
 "			    (via repeat#setreg()).
 "* RETURN VALUES:
@@ -451,9 +466,9 @@ function! repeatableMapping#makePlugMappingWithDifferentRepeatCrossRepeatable( n
     endif
 
     let l:isCaptureRegister = (a:0 >= 2 && a:2)
-    let [l:captureRegisterModifier, l:captureRegisterMapping, l:captureRegisterExpr] = (l:isCaptureRegister ?
-    \   ['<script> ', '<SID>(CaptureRegister)', 'call <SID>CaptureRegister()<Bar>'] :
-    \   ['', '', '']
+    let [l:captureRegisterModifier, l:captureRegisterMapping, l:captureRegisterExpr, l:captureRegisterReapplyMapping] = (l:isCaptureRegister ?
+    \   ['<script> ', '<SID>(CaptureRegister)', 'call <SID>CaptureRegister()<Bar>', '<SID>(ReapplyRegister)'] :
+    \   ['', '', '', '']
     \)
     let [l:normalRhsBefore, l:normalCmdJoiner, l:normalRhsAfter] = s:GetRhsAndCmdJoiner(a:normalMapName, 'n')
     let [l:visualRhsBefore, l:visualCmdJoiner, l:visualRhsAfter] = s:GetRhsAndCmdJoiner(a:visualMapName, a:visualMapCmd[0])
@@ -474,7 +489,7 @@ function! repeatableMapping#makePlugMappingWithDifferentRepeatCrossRepeatable( n
 
     let l:repeatPlugMapping = a:normalMapCmd . ' <silent> <script> ' . a:visualRepeatMapName . ' ' .
     \	':<C-u>' . l:captureRegisterExpr . "execute 'normal! ' . <SID>VisualMode()<CR>" .
-    \   '<SID>(ReapplyRepeatCount)' .
+    \   '<SID>(ReapplyRepeatCount)' . l:captureRegisterReapplyMapping .
     \	l:visualRhsBefore .
     \	l:visualCmdJoiner .
     \	call('s:RepeatSection', [a:visualRepeatMapName, a:visualRepeatMapName] + a:000) .
@@ -516,7 +531,10 @@ function! repeatableMapping#makePlugMappingCrossRepeatable( normalMapCmd, normal
 "   a:visualMapName	Name of the <Plug>-mapping to be made repeatable.
 "			This must be different from the a:normalMapName;
 "			typically the visual mode name contains "Selection".
-"   a:defaultCount      Optional default count for repeat#set().
+"   a:defaultCount  Optional default count for repeat#set(). Pass '' (empty
+"                   String) to omit. Can be a Funcref which is then invoked
+"                   dynamically (without any arguments) to get the saved
+"                   original v:count.
 "* RETURN VALUES:
 "   None.
 "******************************************************************************
@@ -554,7 +572,10 @@ function! repeatableMapping#makeMultipleCrossRepeatable( normalDefs, visualMapCm
 "			This must be different from the a:normalMapName;
 "			typically the visual mode name contains "Selection".
 "			(The <Plug> prefix is optional.)
-"   a:defaultCount      Optional default count for repeat#set().
+"   a:defaultCount  Optional default count for repeat#set(). Pass '' (empty
+"                   String) to omit. Can be a Funcref which is then invoked
+"                   dynamically (without any arguments) to get the saved
+"                   original v:count.
 "* RETURN VALUES:
 "   None.
 "******************************************************************************
@@ -597,7 +618,10 @@ function! repeatableMapping#makeMultiplePlugMappingCrossRepeatable( normalDefs, 
 "   a:visualMapName	Name of the <Plug>-mapping to be made repeatable.
 "			This must be different from the a:normalMapName;
 "			typically the visual mode name contains "Selection".
-"   a:defaultCount      Optional default count for repeat#set().
+"   a:defaultCount  Optional default count for repeat#set(). Pass '' (empty
+"                   String) to omit. Can be a Funcref which is then invoked
+"                   dynamically (without any arguments) to get the saved
+"                   original v:count.
 "* RETURN VALUES:
 "   None.
 "******************************************************************************
