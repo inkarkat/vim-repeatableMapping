@@ -12,6 +12,17 @@
 " Maintainer:	Ingo Karkat <ingo@karkat.de>
 "
 " REVISION	DATE		REMARKS
+"   2.11.018	11-Apr-2019	Documentation: Mention that a <silent>
+"                               map-argument does not need to be passed; I was
+"                               confused about this myself.
+"                               FIX: The ingo-library may not be loaded yet (as
+"                               repeatable mappings are usually defined early in
+"                               plugin scripts); try loading it before testing
+"                               for its existence.
+"                               Escaping (duplicated from ingo#compat#maparg())
+"                               didn't consider <; in fact, it needs to escape
+"                               stand-alone < and escaped \<, but not proper key
+"                               notations like <C-CR>.
 "   2.10.017	19-Nov-2014	ENH: Allow to pass Funcref as a:defaultCount;
 "				the value will then be determined via a dynamic
 "				lookup. This is necessary for mappings that
@@ -159,13 +170,16 @@ nnoremap <silent> <script> <Plug>(ReenterVisualMode)
 \   :<C-u>execute 'normal! ' . <SID>ReapplyVisualMode()<CR><SID>(ReapplyGivenCount)
 
 
-
+silent! call ingo#compat#maparg('') " Try loading the ingo-library autoload script before testing for its existence.
 function! s:GetRhsAndCmdJoiner( lhs, mapMode )
     if exists('*ingo#compat#maparg')    " Avoid hard dependency to ingo-library.
 	let l:rhs = ingo#compat#maparg(a:lhs, a:mapMode)
     else
 	let l:rhs = maparg(a:lhs, a:mapMode)
-	let l:rhs = substitute(l:rhs, '|', '<Bar>', 'g')	" '|' must be escaped, or the map command will end prematurely.
+	" Duplicated from ingo#compat#maparg() to avoid dependency to
+	" ingo-library.
+	let l:rhs = substitute(l:rhs, '\%(\%(^\|[^\\]\)\%(\\\\\)*\\\)\@<!\\\zs<\|<\%([^<]\+>\)\@!', '<lt>', 'g')    " Escape stand-alone < (when not part of a key-notation), or when escaped \<, but not proper key-notation like <C-CR>.
+	let l:rhs = substitute(l:rhs, '|', '<Bar>', 'g')    " '|' must be escaped, or the map command will end prematurely.
     endif
     if l:rhs =~? ':.*<CR>'
 	let [l:rhsBefore, l:rhsAfter] = matchlist(l:rhs, '^\(.*\)\c<CR>\(.*\)$')[1:2]
