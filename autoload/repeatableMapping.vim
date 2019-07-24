@@ -269,8 +269,8 @@ function! repeatableMapping#makeRepeatable( mapCmd, lhs, mapName, ... )
 "                   String) to omit. Can be a Funcref which is then invoked
 "                   dynamically (without any arguments) to get the saved
 "                   original v:count.
-"   a:isRepeatRegister      Flag. If 1, the register is also stored and repeated
-"			    (via repeat#setreg()).
+"   a:isRepeatRegister      Optional flag. If 1, the register is also stored and
+"                           repeated (via repeat#setreg()).
 "* RETURN VALUES:
 "   None.
 "******************************************************************************
@@ -298,8 +298,8 @@ function! repeatableMapping#makePlugMappingRepeatable( mapCmd, mapName, ... )
 "                   String) to omit. Can be a Funcref which is then invoked
 "                   dynamically (without any arguments) to get the saved
 "                   original v:count.
-"   a:isRepeatRegister      Flag. If 1, the register is also stored and repeated
-"			    (via repeat#setreg()).
+"   a:isRepeatRegister      Optional flag. If 1, the register is also stored and
+"                           repeated (via repeat#setreg()).
 "* RETURN VALUES:
 "   None.
 "******************************************************************************
@@ -361,8 +361,8 @@ function! repeatableMapping#makeCrossRepeatable( normalMapCmd, normalLhs, normal
 "                   String) to omit. Can be a Funcref which is then invoked
 "                   dynamically (without any arguments) to get the saved
 "                   original v:count.
-"   a:isRepeatRegister      Flag. If 1, the register is also stored and repeated
-"			    (via repeat#setreg()).
+"   a:isRepeatRegister      Optional flag. If 1, the register is also stored and
+"                           repeated (via repeat#setreg()).
 "* RETURN VALUES:
 "   None.
 "******************************************************************************
@@ -380,27 +380,33 @@ function! repeatableMapping#makeCrossRepeatable( normalMapCmd, normalLhs, normal
 	return
     endif
 
+    let l:isCaptureRegister = (a:0 >= 2 && a:2)
+    let [l:captureRegisterModifier, l:captureRegisterMapping, l:captureRegisterExpr, l:captureRegisterReapplyMapping] = s:GetCaptureRegisterParameters(l:isCaptureRegister)
+
     let l:normalPlugName = s:PlugMap(a:normalMapName)
     let l:visualPlugName = s:PlugMap(a:visualMapName)
 
     let [l:normalRhsBefore, l:normalCmdJoiner, l:normalRhsAfter] = s:GetRhsAndCmdJoiner(a:normalLhs, 'n')
     let [l:visualRhsBefore, l:visualCmdJoiner, l:visualRhsAfter] = s:GetRhsAndCmdJoiner(a:visualLhs, a:visualMapCmd[0])
 
-    let l:normalPlugMapping = a:normalMapCmd . ' <silent> ' . l:normalPlugName . ' ' .
+    let l:normalPlugMapping = a:normalMapCmd . ' <silent> ' . l:captureRegisterModifier . l:normalPlugName . ' ' .
+    \   l:captureRegisterMapping .
     \	l:normalRhsBefore .
     \	l:normalCmdJoiner .
     \	call('s:RepeatSection', [l:normalPlugName, l:visualPlugName] + a:000) .
     \   l:normalRhsAfter
 
-    let l:visualPlugMapping = a:visualMapCmd . ' <silent> ' . l:visualPlugName . ' ' .
+    let l:visualPlugMapping = a:visualMapCmd . ' <silent> ' . l:captureRegisterModifier . l:visualPlugName . ' ' .
+    \   l:captureRegisterMapping .
     \	l:visualRhsBefore .
     \	l:visualCmdJoiner .
     \	call('s:RepeatSection', [l:visualPlugName, l:visualPlugName] + a:000) .
     \   l:visualRhsAfter
 
     let l:repeatPlugMapping = a:normalMapCmd . ' <silent> <script> ' . l:visualPlugName . ' ' .
-    \	":<C-u>execute 'normal! ' . <SID>VisualMode()<CR>" .
+    \	':<C-u>' . l:captureRegisterExpr .  "execute 'normal! ' . <SID>VisualMode()<CR>" .
     \   '<SID>(ReapplyRepeatCount)' .
+    \   l:captureRegisterReapplyMapping .
     \	l:visualRhsBefore .
     \	l:visualCmdJoiner .
     \	call('s:RepeatSection', [l:visualPlugName, l:visualPlugName] + a:000) .
@@ -464,8 +470,8 @@ function! repeatableMapping#makePlugMappingWithDifferentRepeatCrossRepeatable( n
 "                   String) to omit. Can be a Funcref which is then invoked
 "                   dynamically (without any arguments) to get the saved
 "                   original v:count.
-"   a:isRepeatRegister      Flag. If 1, the register is also stored and repeated
-"			    (via repeat#setreg()).
+"   a:isRepeatRegister      Optional flag. If 1, the register is also stored and
+"                           repeated (via repeat#setreg()).
 "* RETURN VALUES:
 "   None.
 "******************************************************************************
@@ -505,7 +511,8 @@ function! repeatableMapping#makePlugMappingWithDifferentRepeatCrossRepeatable( n
 
     let l:repeatPlugMapping = a:normalMapCmd . ' <silent> <script> ' . a:visualRepeatMapName . ' ' .
     \	':<C-u>' . l:captureRegisterExpr . "execute 'normal! ' . <SID>VisualMode()<CR>" .
-    \   '<SID>(ReapplyRepeatCount)' . l:captureRegisterReapplyMapping .
+    \   '<SID>(ReapplyRepeatCount)' .
+    \   l:captureRegisterReapplyMapping .
     \	l:visualRhsBefore .
     \	l:visualCmdJoiner .
     \	call('s:RepeatSection', [a:visualRepeatMapName, a:visualRepeatMapName] + a:000) .
@@ -551,8 +558,8 @@ function! repeatableMapping#makePlugMappingCrossRepeatable( normalMapCmd, normal
 "                   String) to omit. Can be a Funcref which is then invoked
 "                   dynamically (without any arguments) to get the saved
 "                   original v:count.
-"   a:isRepeatRegister      Flag. If 1, the register is also stored and repeated
-"			    (via repeat#setreg()).
+"   a:isRepeatRegister      Optional flag. If 1, the register is also stored and
+"                           repeated (via repeat#setreg()).
 "* RETURN VALUES:
 "   None.
 "******************************************************************************
@@ -594,8 +601,8 @@ function! repeatableMapping#makeMultipleCrossRepeatable( normalDefs, visualMapCm
 "                   String) to omit. Can be a Funcref which is then invoked
 "                   dynamically (without any arguments) to get the saved
 "                   original v:count.
-"   a:isRepeatRegister      Flag. If 1, the register is also stored and repeated
-"			    (via repeat#setreg()).
+"   a:isRepeatRegister      Optional flag. If 1, the register is also stored and
+"                           repeated (via repeat#setreg()).
 "* RETURN VALUES:
 "   None.
 "******************************************************************************
@@ -642,8 +649,8 @@ function! repeatableMapping#makeMultiplePlugMappingCrossRepeatable( normalDefs, 
 "                   String) to omit. Can be a Funcref which is then invoked
 "                   dynamically (without any arguments) to get the saved
 "                   original v:count.
-"   a:isRepeatRegister      Flag. If 1, the register is also stored and repeated
-"			    (via repeat#setreg()).
+"   a:isRepeatRegister      Optional flag. If 1, the register is also stored and
+"                           repeated (via repeat#setreg()).
 "* RETURN VALUES:
 "   None.
 "******************************************************************************
