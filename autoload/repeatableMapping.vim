@@ -219,7 +219,7 @@ function! s:MakePlugMappingWithRepeat( mapCmd, lhs, plugName, ... )
     let l:isCaptureRegister = (a:0 >= 2 && a:2)
     let [l:captureRegisterModifier, l:captureRegisterMapping, l:captureRegisterExpr, l:captureRegisterReapplyMapping] = s:GetCaptureRegisterParameters(l:isCaptureRegister)
     let l:mapMode = (a:mapCmd =~# '^\w\%(nore\)\?map' ? a:mapCmd[0] : '')
-    let l:repeatMapping = (l:mapMode =~# '^[vxs]$' ? '\<Plug>(ReenterVisualMode)' . l:captureRegisterReapplyMapping : '') . '\' . a:plugName
+    let l:repeatMapping = (l:mapMode =~# '^[vxs]$' ? l:captureRegisterMapping . '\<Plug>(ReenterVisualMode)' . l:captureRegisterReapplyMapping : '') . '\' . a:plugName
 
     let [l:rhsBefore, l:cmdJoiner, l:rhsAfter] = s:GetRhsAndCmdJoiner(a:lhs, l:mapMode)
 
