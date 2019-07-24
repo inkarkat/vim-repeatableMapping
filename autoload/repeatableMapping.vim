@@ -170,6 +170,18 @@ nnoremap <silent> <script> <Plug>(ReenterVisualMode)
 \   :<C-u>execute 'normal! ' . <SID>ReapplyVisualMode()<CR><SID>(ReapplyGivenCount)
 
 
+let s:register = '"'
+function! s:CaptureRegister() abort
+    let s:register = v:register
+    return ''
+endfunction
+function! s:GetRegister() abort
+    return s:register
+endfunction
+nnoremap <silent> <expr> <SID>(CaptureRegister) <SID>CaptureRegister()
+vnoremap <silent> <expr> <SID>(CaptureRegister) <SID>CaptureRegister()
+
+
 silent! call ingo#compat#maparg('') " Try loading the ingo-library autoload script before testing for its existence.
 function! s:GetRhsAndCmdJoiner( lhs, mapMode )
     if exists('*ingo#compat#maparg')    " Avoid hard dependency to ingo-library.
@@ -202,7 +214,7 @@ function! s:MakePlugMappingWithRepeat( mapCmd, lhs, plugName, ... )
     \	l:cmdJoiner . 'silent! call repeat#set("' .
     \	(l:mapMode =~# '^[vxs]$' ? '\<Plug>(ReenterVisualMode)' : '') .
     \	'\' . a:plugName .
-    \	'"' . (a:0 ? ', ' . s:RenderCount(a:1) : '') .
+    \	'"' . (a:0 && a:1 isnot# '' ? ', ' . s:RenderCount(a:1) : '') .
     \	')<CR>' .
     \   l:rhsAfter
 "****D unsilent echomsg l:plugMapping string(a:mapCmd) string(a:lhs) string(a:plugName)
@@ -268,13 +280,19 @@ function! repeatableMapping#makePlugMappingRepeatable( mapCmd, mapName, ... )
 endfunction
 
 function! s:RepeatSection( normalRepeatPlug, visualRepeatPlug, ... )
+    let l:isCaptureRegister = (a:0 >= 2 && a:2)
     return
+    \   (l:isCaptureRegister ?
+    \       'silent! call repeat#setreg("' .
+    \	        '\' . a:normalRepeatPlug . '", <SID>GetRegister())<Bar>' :
+    \       ''
+    \   ) .
     \	'silent! call repeat#set("' .
     \	'\' . a:normalRepeatPlug .
-    \	'"' . (a:0 ? ', ' . s:RenderCount(a:1) : '') .
+    \	'"' . (a:0 && a:1 isnot# '' ? ', ' . s:RenderCount(a:1) : '') .
     \	')<Bar>silent! call visualrepeat#set("' .
     \	'\' . a:visualRepeatPlug .
-    \	'"' . (a:0 ? ', ' . s:RenderCount(a:1) : '') .
+    \	'"' . (a:0 && a:1 isnot# '' ? ', ' . s:RenderCount(a:1) : '') .
     \	')<CR>'
 endfunction
 function! s:RenderCount( Count )
@@ -411,7 +429,10 @@ function! repeatableMapping#makePlugMappingWithDifferentRepeatCrossRepeatable( n
 "   a:visualRepeatMapName   Name of the <Plug>-mapping that is invoked on
 "			    repeat. Typically like a:visualMapName with appended
 "			    "repeat".
-"   a:defaultCount          Optional default count for repeat#set().
+"   a:defaultCount          Optional default count for repeat#set(). Pass ''
+"			    (empty String) to omit.
+"   a:isRepeatRegister      Flag. If 1, the register is also stored and repeated
+"			    (via repeat#setreg()).
 "* RETURN VALUES:
 "   None.
 "******************************************************************************
@@ -429,23 +450,30 @@ function! repeatableMapping#makePlugMappingWithDifferentRepeatCrossRepeatable( n
 	return
     endif
 
+    let l:isCaptureRegister = (a:0 >= 2 && a:2)
+    let [l:captureRegisterModifier, l:captureRegisterMapping, l:captureRegisterExpr] = (l:isCaptureRegister ?
+    \   ['<script> ', '<SID>(CaptureRegister)', 'call <SID>CaptureRegister()<Bar>'] :
+    \   ['', '', '']
+    \)
     let [l:normalRhsBefore, l:normalCmdJoiner, l:normalRhsAfter] = s:GetRhsAndCmdJoiner(a:normalMapName, 'n')
     let [l:visualRhsBefore, l:visualCmdJoiner, l:visualRhsAfter] = s:GetRhsAndCmdJoiner(a:visualMapName, a:visualMapCmd[0])
 
-    let l:normalPlugMapping = a:normalMapCmd . ' <silent> ' . a:normalMapName . ' ' .
+    let l:normalPlugMapping = a:normalMapCmd . ' <silent> ' . l:captureRegisterModifier . a:normalMapName . ' ' .
+    \   l:captureRegisterMapping .
     \	l:normalRhsBefore .
     \	l:normalCmdJoiner .
     \	call('s:RepeatSection', [a:normalRepeatMapName, a:visualRepeatMapName] + a:000) .
     \   l:normalRhsAfter
 
-    let l:visualPlugMapping = a:visualMapCmd . ' <silent> ' . a:visualMapName . ' ' .
+    let l:visualPlugMapping = a:visualMapCmd . ' <silent> ' . l:captureRegisterModifier . a:visualMapName . ' ' .
+    \   l:captureRegisterMapping .
     \	l:visualRhsBefore .
     \	l:visualCmdJoiner .
     \	call('s:RepeatSection', [a:visualRepeatMapName, a:visualRepeatMapName] + a:000) .
     \   l:visualRhsAfter
 
     let l:repeatPlugMapping = a:normalMapCmd . ' <silent> <script> ' . a:visualRepeatMapName . ' ' .
-    \	":<C-u>execute 'normal! ' . <SID>VisualMode()<CR>" .
+    \	':<C-u>' . l:captureRegisterExpr . "execute 'normal! ' . <SID>VisualMode()<CR>" .
     \   '<SID>(ReapplyRepeatCount)' .
     \	l:visualRhsBefore .
     \	l:visualCmdJoiner .
