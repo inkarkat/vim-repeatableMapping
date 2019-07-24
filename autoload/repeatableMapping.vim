@@ -184,6 +184,12 @@ function! s:ReapplyRegister() abort
     return (s:register ==# '"' ? '' : '"' . s:register)
 endfunction
 vnoremap <silent> <expr> <SID>(ReapplyRegister) <SID>ReapplyRegister()
+function! s:GetCaptureRegisterParameters( isCaptureRegister )
+    return (a:isCaptureRegister ?
+    \   ['<script> ', '<SID>(CaptureRegister)', 'call <SID>CaptureRegister()<Bar>', '<SID>(ReapplyRegister)'] :
+    \   ['', '', '', '']
+    \)
+endfunction
 
 
 silent! call ingo#compat#maparg('') " Try loading the ingo-library autoload script before testing for its existence.
@@ -210,14 +216,23 @@ function! s:GetRhsAndCmdJoiner( lhs, mapMode )
 endfunction
 
 function! s:MakePlugMappingWithRepeat( mapCmd, lhs, plugName, ... )
+    let l:isCaptureRegister = (a:0 >= 2 && a:2)
+    let [l:captureRegisterModifier, l:captureRegisterMapping, l:captureRegisterExpr, l:captureRegisterReapplyMapping] = s:GetCaptureRegisterParameters(l:isCaptureRegister)
     let l:mapMode = (a:mapCmd =~# '^\w\%(nore\)\?map' ? a:mapCmd[0] : '')
+    let l:repeatMapping = (l:mapMode =~# '^[vxs]$' ? '\<Plug>(ReenterVisualMode)' . l:captureRegisterReapplyMapping : '') . '\' . a:plugName
 
     let [l:rhsBefore, l:cmdJoiner, l:rhsAfter] = s:GetRhsAndCmdJoiner(a:lhs, l:mapMode)
 
-    let l:plugMapping = a:mapCmd . ' <silent> ' . a:plugName . ' ' . l:rhsBefore .
-    \	l:cmdJoiner . 'silent! call repeat#set("' .
-    \	(l:mapMode =~# '^[vxs]$' ? '\<Plug>(ReenterVisualMode)' : '') .
-    \	'\' . a:plugName .
+    let l:plugMapping = a:mapCmd . ' <silent> ' . l:captureRegisterModifier . a:plugName . ' ' .
+    \   l:captureRegisterMapping .
+    \   l:rhsBefore .
+    \	l:cmdJoiner .
+    \   (l:isCaptureRegister ?
+    \       'silent! call repeat#setreg("' . l:repeatMapping . '", <SID>GetRegister())<Bar>' :
+    \       ''
+    \   ) .
+    \   'silent! call repeat#set("' .
+    \	l:repeatMapping .
     \	'"' . (a:0 && a:1 isnot# '' ? ', ' . s:RenderCount(a:1) : '') .
     \	')<CR>' .
     \   l:rhsAfter
@@ -283,6 +298,8 @@ function! repeatableMapping#makePlugMappingRepeatable( mapCmd, mapName, ... )
 "                   String) to omit. Can be a Funcref which is then invoked
 "                   dynamically (without any arguments) to get the saved
 "                   original v:count.
+"   a:isRepeatRegister      Flag. If 1, the register is also stored and repeated
+"			    (via repeat#setreg()).
 "* RETURN VALUES:
 "   None.
 "******************************************************************************
@@ -293,8 +310,7 @@ function! s:RepeatSection( normalRepeatPlug, visualRepeatPlug, ... )
     let l:isCaptureRegister = (a:0 >= 2 && a:2)
     return
     \   (l:isCaptureRegister ?
-    \       'silent! call repeat#setreg("' .
-    \	        '\' . a:normalRepeatPlug . '", <SID>GetRegister())<Bar>' :
+    \       'silent! call repeat#setreg("' . '\' . a:normalRepeatPlug . '", <SID>GetRegister())<Bar>' :
     \       ''
     \   ) .
     \	'silent! call repeat#set("' .
@@ -345,6 +361,8 @@ function! repeatableMapping#makeCrossRepeatable( normalMapCmd, normalLhs, normal
 "                   String) to omit. Can be a Funcref which is then invoked
 "                   dynamically (without any arguments) to get the saved
 "                   original v:count.
+"   a:isRepeatRegister      Flag. If 1, the register is also stored and repeated
+"			    (via repeat#setreg()).
 "* RETURN VALUES:
 "   None.
 "******************************************************************************
@@ -466,10 +484,8 @@ function! repeatableMapping#makePlugMappingWithDifferentRepeatCrossRepeatable( n
     endif
 
     let l:isCaptureRegister = (a:0 >= 2 && a:2)
-    let [l:captureRegisterModifier, l:captureRegisterMapping, l:captureRegisterExpr, l:captureRegisterReapplyMapping] = (l:isCaptureRegister ?
-    \   ['<script> ', '<SID>(CaptureRegister)', 'call <SID>CaptureRegister()<Bar>', '<SID>(ReapplyRegister)'] :
-    \   ['', '', '', '']
-    \)
+    let [l:captureRegisterModifier, l:captureRegisterMapping, l:captureRegisterExpr, l:captureRegisterReapplyMapping] = s:GetCaptureRegisterParameters(l:isCaptureRegister)
+
     let [l:normalRhsBefore, l:normalCmdJoiner, l:normalRhsAfter] = s:GetRhsAndCmdJoiner(a:normalMapName, 'n')
     let [l:visualRhsBefore, l:visualCmdJoiner, l:visualRhsAfter] = s:GetRhsAndCmdJoiner(a:visualMapName, a:visualMapCmd[0])
 
@@ -535,6 +551,8 @@ function! repeatableMapping#makePlugMappingCrossRepeatable( normalMapCmd, normal
 "                   String) to omit. Can be a Funcref which is then invoked
 "                   dynamically (without any arguments) to get the saved
 "                   original v:count.
+"   a:isRepeatRegister      Flag. If 1, the register is also stored and repeated
+"			    (via repeat#setreg()).
 "* RETURN VALUES:
 "   None.
 "******************************************************************************
@@ -576,6 +594,8 @@ function! repeatableMapping#makeMultipleCrossRepeatable( normalDefs, visualMapCm
 "                   String) to omit. Can be a Funcref which is then invoked
 "                   dynamically (without any arguments) to get the saved
 "                   original v:count.
+"   a:isRepeatRegister      Flag. If 1, the register is also stored and repeated
+"			    (via repeat#setreg()).
 "* RETURN VALUES:
 "   None.
 "******************************************************************************
@@ -622,6 +642,8 @@ function! repeatableMapping#makeMultiplePlugMappingCrossRepeatable( normalDefs, 
 "                   String) to omit. Can be a Funcref which is then invoked
 "                   dynamically (without any arguments) to get the saved
 "                   original v:count.
+"   a:isRepeatRegister      Flag. If 1, the register is also stored and repeated
+"			    (via repeat#setreg()).
 "* RETURN VALUES:
 "   None.
 "******************************************************************************
