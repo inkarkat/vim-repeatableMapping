@@ -203,6 +203,16 @@ IDEAS						     *repeatableMapping-ideas*
 ==============================================================================
 HISTORY						   *repeatableMapping-history*
 
+2.11	RELEASEME
+- Documentation: Mention that a <silent> map-argument does not need to be
+  passed; I was confused about this myself.
+- FIX: The ingo-library may not be loaded yet (as repeatable mappings are
+  usually defined early in plugin scripts); try loading it before testing for
+  its existence.
+- Escaping (duplicated from ingo#compat#maparg()) didn't consider <; in fact,
+  it needs to escape stand-alone < and escaped \<, but not proper key
+  notations like <C-CR>.
+
 2.10	08-Mar-2015
 - ENH: Allow to pass Funcref as a:defaultCount; the value will then be
   determined via a dynamic lookup. This is necessary for mappings that clobber
@@ -253,7 +263,7 @@ First version.
 Started development.
 
 ==============================================================================
-Copyright: (C) 2008-2015 Ingo Karkat
+Copyright: (C) 2008-2019 Ingo Karkat
 The VIM LICENSE applies to this plugin; see |copyright|.
 
 Maintainer:	Ingo Karkat <ingo@karkat.de>
