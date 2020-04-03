@@ -208,7 +208,7 @@ below).
 HISTORY
 ------------------------------------------------------------------------------
 
-##### 2.20    RELEASEME
+##### 2.20    03-Apr-2020
 - ENH: All functions now support a second optional a:isRepeatRegister argument
   (to skip specifying a a:defaultCount, pass an empty String as the first
   optional argument) that if set invokes repeat#setreg() before the original
