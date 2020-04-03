@@ -1,129 +1,14 @@
 " repeatableMapping.vim: Set up mappings that can be repeated via repeat.vim.
 "
 " DEPENDENCIES:
-"   - repeat.vim (vimscript #2136) autoload script (optional)
-"   - visualrepeat.vim (vimscript #3848) autoload script (optional)
-"   - visualrepeat/reapply.vim (vimscript #3848) autoload script (optional)
-"   - ingo/compat.vim autoload script (optional)
+"   - repeat.vim (vimscript #2136) plugin (optional)
+"   - visualrepeat.vim (vimscript #3848) plugin (optional)
+"   - ingo-library.vim plugin (optional)
 "
-" Copyright: (C) 2008-2019 Ingo Karkat
+" Copyright: (C) 2008-2020 Ingo Karkat
 "   The VIM LICENSE applies to this script; see ':help copyright'.
 "
 " Maintainer:	Ingo Karkat <ingo@karkat.de>
-"
-" REVISION	DATE		REMARKS
-"   2.11.018	11-Apr-2019	Documentation: Mention that a <silent>
-"                               map-argument does not need to be passed; I was
-"                               confused about this myself.
-"                               FIX: The ingo-library may not be loaded yet (as
-"                               repeatable mappings are usually defined early in
-"                               plugin scripts); try loading it before testing
-"                               for its existence.
-"                               Escaping (duplicated from ingo#compat#maparg())
-"                               didn't consider <; in fact, it needs to escape
-"                               stand-alone < and escaped \<, but not proper key
-"                               notations like <C-CR>.
-"   2.10.017	19-Nov-2014	ENH: Allow to pass Funcref as a:defaultCount;
-"				the value will then be determined via a dynamic
-"				lookup. This is necessary for mappings that
-"				clobber v:count (e.g. due to use of :normal).
-"				They can now save the original count and pass it
-"				on to the repeat part via the Funcref, which is
-"				more elegant than a global variable.
-"   2.01.016	19-Nov-2014	BUG: Typo in
-"				repeatableMapping#makePlugMappingCrossRepeatable()
-"				causes "E116: Invalid arguments for function
-"				call", which unfortunately usually is suppressed
-"				by the :silent! invocation.
-"   2.00.015	09-Aug-2013	Use ingo#compat#maparg() when available.
-"   2.00.014	14-Jun-2013	Minor: Make substitute() robust against
-"				'ignorecase'.
-"   2.00.013	25-May-2013	Make the <Plug> prefix optional for
-"				repeatableMapping#makeRepeatable(),
-"				repeatableMapping#makeCrossRepeatable(),
-"				repeatableMapping#makeMultipleCrossRepeatable().
-"				It is still mandatory for the ...#makePlug...()
-"				functions, but now it can be used in a more
-"				consistent may (always passing <Plug>) without
-"				breaking backwards compatibility.
-"				ENH: Also allow cross-repeat for existing
-"				<Plug>-mappings that need to call a different
-"				repeat <Plug>-mapping via
-"				repeatableMapping#makePlugMappingWithDifferentRepeatCrossRepeatable().
-"   2.00.012	23-May-2013	FIX: "E121: Undefined variable: SNR, E15:
-"				Invalid expression: 'normal!'
-"				<SNR>141_VisualMode()". Need to use
-"				concatenation to avoid that error.
-"				Make repeatableMapping#ReapplyVisualMode()
-"				script-local and apply the above fix there, too.
-"				I see no reason why this function should be
-"				exposed, as it only works together with
-"				<SID>(ReapplyGivenCount).
-"   2.00.011	18-Apr-2013	Also need to drop off <script> from the a:mapCmd
-"				to turn it into an effective <Plug> mapping
-"				command.
-"				Rework <Plug>(ReenterVisualMode) for when
-"				there's no cross-repeat to handle [count] in a
-"				way similar to the changed cross-repeat.
-"				Move the functions for cross-repeating a visual
-"				mapping in normal mode through visualrepeat.vim
-"				to visualrepeat/reapply.vim to allow re-use in
-"				other plugins without forcing a dependency to
-"				this plugin. Since this functionality is only
-"				ever invoked through an installed
-"				visualrepeat.vim, it truly belongs there, not
-"				here.
-"   2.00.010	17-Apr-2013	FIX: Optional a:defaultCount argument for
-"				repeat#set() is only used when visualrepeat.vim
-"				is not installed.
-"				ENH: Insert the repeat calls after the last
-"				<CR>, even if it is not at the end of the
-"				original mapping. This allows preserving the
-"				count for those mappings, too.
-"				Consider actual visual map mode of
-"				a:visualMapCmd (one of 'v', 'x', or 's').
-"				CHG: In cross-repeat, select [count] lines /
-"				times the original selection when [count] is
-"				given and different from the repeat count, and
-"				pass the original count into the repeated
-"				mapping.
-"   2.00.009	12-Apr-2013	ENH: Enable cross-repeat for existing
-"				<Plug>-mappings (as provided by plugins), too.
-"				The new functions parallel to the existing ones
-"				are
-"				repeatableMapping#makePlugMappingCrossRepeatable(),
-"				repeatableMapping#makeMultipleCrossRepeatable().
-"   1.00.008	13-Dec-2011	Consistency: Renamed variables.
-"				Add documentation for public functions.
-"				Rename <Plug>ReenterVisualMode.
-"	007	12-Dec-2011	Add
-"				repeatableMapping#makeMultipleCrossRepeatable()
-"				for the special case of multiple normal mode
-"				mappings in ingotextobjects.vim.
-"				FIX: Correct fallback for
-"				repeatableMapping#makeCrossRepeatable() and pass
-"				optional arguments, too.
-"				FIX: Must :runtime visualrepeat plugin before
-"				the existence check when repeatableMappings are
-"				defined in plugins that are sourced before the
-"				visualrepeat plugin.
-"	006	08-Dec-2011	Rename variables; just a single-letter
-"				difference isn't enough.
-"				Implement fallback for
-"				repeatableMapping#makeCrossRepeatable when
-"				visualrepeat.vim isn't available.
-"	005	06-Dec-2011	<Plug>ReenterVisualMode: If [count] is given,
-"				the size is multiplied accordingly.
-"	004	30-Sep-2011	Automatically map <Plug>-mapping with <silent>
-"				to avoid showing the repeat invocation.
-"	003	17-Mar-2011	Factor out s:MakePlugMappingWithRepeat().
-"				Add
-"				repeatableMapping#makePlugMappingRepeatable()
-"				for the case when a <Plug> mapping already
-"				exists and just needs the repeat#set() appended.
-"	002	25-Sep-2008	BF: '|' must be escaped, or the map command will
-"				end prematurely.
-"	001	24-Sep-2008	file creation
 let s:save_cpo = &cpo
 set cpo&vim
 
