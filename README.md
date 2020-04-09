@@ -100,6 +100,11 @@ can specify separate repeat &lt;Plug&gt;-mappings:
     \   'xnoremap', '<Plug>(FooSelectionRepeat)', '<Plug>(FooSelectionRepeat)'
     \)
 
+### RELATED WORKS
+
+- Repeatable.vim (https://github.com/kreskij/Repeatable.vim) adds repeat.vim
+  support simply by prepending its :Repeatable command to the :map command.
+
 USAGE
 ------------------------------------------------------------------------------
 
